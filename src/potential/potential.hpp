@@ -49,6 +49,9 @@ class Potential : public Field4D
     /// XC potential.
     std::unique_ptr<Periodic_function<double>> xc_potential_;
 
+    /// (WIP)TODO: Tau potential
+    std::unique_ptr<Periodic_function<double>> tau_potential_;
+
     /// XC energy per unit particle.
     std::unique_ptr<Periodic_function<double>> xc_energy_density_;
 
@@ -783,6 +786,18 @@ class Potential : public Field4D
     }
 
     auto&
+    tau_potential()
+    {
+        return *tau_potential_;
+    }
+
+    auto const&
+    tau_potential() const
+    {
+        return *tau_potential_;
+    }
+
+    auto&
     xc_energy_density()
     {
         return *xc_energy_density_;
@@ -856,6 +871,13 @@ class Potential : public Field4D
         return inner(density__.rho_pseudo_core(), xc_potential().rg());
     }
 
+    /// (WIP)TODO: Integral of \f$ \tau({\bf r}) V^{\tau}({\bf r})\f$.
+    auto
+    energy_vtau(Density const& density__) const
+    {
+        return inner(density__.tau(), tau_potential().rg());
+    }
+
     /// Integral of \f$ \rho({\bf r}) \epsilon^{XC}({\bf r}) \f$.
     auto
     energy_exc(Density const& density__) const
@@ -869,6 +891,9 @@ class Potential : public Field4D
 
     bool
     is_gradient_correction() const;
+
+    bool
+    is_meta_tau() const;
 
     auto&
     vsigma(int idx__)

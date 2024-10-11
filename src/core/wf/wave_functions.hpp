@@ -858,7 +858,7 @@ template <typename T>
 class Wave_functions_fft : public Wave_functions_base<T>
 {
   private:
-    /// Pointer to FFT-friendly G+k vector deistribution.
+    /// Pointer to FFT-friendly G+k vector distribution.
     std::shared_ptr<fft::Gvec_fft> gkvec_fft_;
     /// Split number of wave-functions between column communicator.
     splindex_block<> spl_num_wf_;

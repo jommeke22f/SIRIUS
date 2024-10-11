@@ -106,6 +106,10 @@ ewald_energy(const Simulation_context& ctx, const fft::Gvec& gvec, const Unit_ce
 double
 energy_vxc(Density const& density, Potential const& potential);
 
+/// (WIP)TODO: tau potential
+double
+energy_vtau(Density const& density, Potential const& potential);
+
 /// Returns exchange correlation energy.
 double
 energy_exc(Density const& density, Potential const& potential);
@@ -288,6 +292,7 @@ energy_dict(Simulation_context const& ctx__, K_point_set const& kset__, Density 
     dict["energy"]["free"]           = free_energy(ctx__, kset__, density__, potential__) + scf_correction__;
     dict["energy"]["vha"]            = energy_vha(potential__);
     dict["energy"]["vxc"]            = energy_vxc(density__, potential__);
+    dict["energy"]["vtau"]           = energy_vtau(density__, potential__); /// (WIP)TODO:
     dict["energy"]["exc"]            = energy_exc(density__, potential__);
     dict["energy"]["bxc"]            = energy_bxc(density__, potential__);
     dict["energy"]["veff"]           = energy_veff(density__, potential__);

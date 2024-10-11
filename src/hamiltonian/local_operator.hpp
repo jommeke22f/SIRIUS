@@ -228,8 +228,12 @@ class Local_operator
          - B_y(r)
          - Theta(r) (in FP-LAPW case)
          - inverse of 1 + relative mass (needed for ZORA LAPW)
+         - (WIP)TODO: V_tau in the case of meta-GGA
      */
-    std::array<std::unique_ptr<Smooth_periodic_function<T>>, 6> veff_vec_;
+    std::array<std::unique_ptr<Smooth_periodic_function<T>>, 7> veff_vec_;
+
+    /// (WIP)TODO: PW buffer for meta-GGA
+    mdarray<std::complex<T>, 1> buf_pw_;
 
     /// Temporary array to store [V*phi](G)
     mdarray<std::complex<T>, 1> vphi_;

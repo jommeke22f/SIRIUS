@@ -221,10 +221,14 @@ class Density : public Field4D
 
     /// Density and magnetization on the coarse FFT mesh.
     /** Coarse FFT grid is enough to generate density and magnetization from the wave-functions. The components
-        of the <tt>rho_mag_coarse</tt> vector have the following order:
+        of the <tttauho_mag_coarse</tt> vector have the following order:
         \f$ \{\rho({\bf r}), m_z({\bf r}), m_x({\bf r}), m_y({\bf r}) \} \f$.
      */
     std::array<std::unique_ptr<Smooth_periodic_function<double>>, 4> rho_mag_coarse_;
+
+    /// (WIP)TODO: kinetic energy density. For now, assume spin restricted system
+    std::unique_ptr<Smooth_periodic_function<double>> tau_;
+    std::unique_ptr<Smooth_periodic_function<double>> tau_coarse_;
 
     /// Pointer to pseudo core charge density
     /** In the case of pseudopotential we need to know the non-linear core correction to the
@@ -448,6 +452,18 @@ class Density : public Field4D
     mag(int i) const
     {
         return this->vector(i);
+    }
+
+    inline auto&
+    tau()
+    {
+        return *tau_;
+    }
+
+    inline auto const&
+    tau() const
+    {
+        return *tau_;
     }
 
     inline auto&

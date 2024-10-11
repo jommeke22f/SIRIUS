@@ -67,6 +67,13 @@ energy_vxc(Density const& density, Potential const& potential)
     return potential.energy_vxc(density);
 }
 
+/// (WIP)TODO:
+double
+energy_vtau(Density const& density, Potential const& potential)
+{
+    return potential.energy_vtau(density);
+}
+
 double
 energy_exc(Density const& density, Potential const& potential)
 {

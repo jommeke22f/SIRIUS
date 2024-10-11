@@ -37,6 +37,12 @@ Local_operator<T>::Local_operator(Simulation_context const& ctx__, fft::spfft_tr
             veff_vec_[j]->value(ir) = 2.71828;
         }
     }
+    /// (WIP)TODO: sjould probably check if tau is required
+    veff_vec_[6] = std::make_unique<Smooth_periodic_function<T>>(fft_coarse__, gvec_coarse_p__);
+    #pragma omp parallel for schedule(static)
+    for (int ir = 0; ir < fft_coarse__.local_slice_size(); ir++) {
+        veff_vec_[6]->value(ir) = 0.0;
+    }
     /* map Theta(r) to the coarse mesh */
     if (ctx_.full_potential()) {
         auto& gvec_dense_p = ctx_.gvec_fft();
@@ -121,6 +127,16 @@ Local_operator<T>::Local_operator(Simulation_context const& ctx__, fft::spfft_tr
                 veff_vec_[j]->fft_transform(1);
             }
 
+            /// (WIP)TODO: map Vtau to coarse grid
+            #pragma omp parallel for schedule(static)
+            for (int igloc = 0; igloc < gvec_coarse_p_->gvec().count(); igloc++) {
+                /* map from fine to coarse set of G-vectors */
+                veff_vec_[6]->f_pw_local(igloc) = 0.5*potential__->tau_potential().rg().f_pw_local(
+                        potential__->tau_potential().rg().gvec().gvec_base_mapping(igloc));
+            }
+            /* transform to real space */
+            veff_vec_[6]->fft_transform(1);
+
             /* change to canonical form */
             if (ctx_.num_mag_dims()) {
                 #pragma omp parallel for schedule(static)
@@ -178,6 +194,10 @@ Local_operator<T>::prepare_k(fft::Gvec_fft const& gkvec_p__)
     vphi_ = mdarray<std::complex<T>, 1>({ngv_fft}, get_memory_pool(memory_t::host),
                                         mdarray_label("Local_operator::vphi"));
 
+    /// (WIP)TODO: PW buffer for meta-GGA (assume CPU only)
+    buf_pw_ = mdarray<std::complex<T>, 1>({ngv_fft}, get_memory_pool(memory_t::host),
+                                          mdarray_label("Local_operator::vphi"));
+
     #pragma omp parallel for schedule(static)
     for (int ig_loc = 0; ig_loc < ngv_fft; ig_loc++) {
         /* get G+k in Cartesian coordinates */
@@ -199,7 +219,7 @@ Local_operator<T>::prepare_k(fft::Gvec_fft const& gkvec_p__)
 template <typename T>
 static inline void
 mul_by_veff(fft::spfft_transform_type<T>& spfftk__, T const* in__,
-            std::array<std::unique_ptr<Smooth_periodic_function<T>>, 6> const& veff_vec__, int idx_veff__, T* out__)
+            std::array<std::unique_ptr<Smooth_periodic_function<T>>, 7> const& veff_vec__, int idx_veff__, T* out__)
 {
     int nr = spfftk__.local_slice_size();
 
@@ -322,20 +342,40 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
         spfftk__.backward(phi_fft[ispn.get()].pw_coeffs_spfft(phi_mem, i), spfft_pu);
     };
 
+    /// (WIP)TODO: transform the gradient of the wave function to real space, for a given coord
+    /// Can probably use to_gradient() here (see xc.cpp)
+    auto gradphi_to_r = [&](wf::spin_index ispn, wf::band_index i, int x){
+        auto phi_mem = phi_fft[ispn.get()].on_device() ? memory_t::device : memory_t::host;
+        ///TODO: this assumes CPU only
+        for (int ig = 0; ig < ngv_fft; ig++) {
+            buf_pw_[ig] = phi_fft[ispn].pw_coeffs(ig, i) * static_cast<T>(gkvec_cart_(ig, x));
+        }
+        spfftk__.backward(reinterpret_cast<T const*>(buf_pw_.at(phi_mem)), spfft_pu);
+    };
+
     /* transform function to PW domain */
     auto vphi_to_G = [&]() {
         spfftk__.forward(spfft_pu, reinterpret_cast<T*>(vphi_.at(spfft_mem)), SPFFT_FULL_SCALING);
+    };
+
+    /// (WIP)TODO: compute the divergence of vphi(G) in place, for a given direction
+    auto div_vphi_G = [&](int x){
+        ///TODO: this assumes CPU only
+        for (int ig = 0; ig < ngv_fft; ig++) {
+            vphi_[ig] *= static_cast<T>(gkvec_cart_(ig, x));
+        }
     };
 
     /* store the resulting hphi
        spin block (ispn_block) is used as a bit mask:
         - first bit: spin component which is updated
         - second bit: add or not kinetic energy term */
-    auto add_to_hphi = [&](int ispn_block, wf::band_index i) {
+    auto add_to_hphi = [&](int ispn_block, wf::band_index i, int add_ekin=1) {
         /* index of spin component */
         int ispn = ispn_block & 1;
         /* add kinetic energy if this is a diagonal block */
         int ekin = (ispn_block & 2) ? 0 : 1;
+        ekin *= add_ekin;
 
         auto hphi_mem = hphi_fft[ispn].on_device() ? memory_t::device : memory_t::host;
 
@@ -457,6 +497,33 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
             vphi_to_G();
             /* add kinetic energy */
             add_to_hphi(spins__.begin().get(), wf::band_index(i));
+
+            /// (WIP)TODO: for the tau functional, need to compute grad phi in G space, than
+            ///            FFT to real space to take product with V_tau, and then FFT back to
+            ///            G space for the divergence
+
+            for (int x : {0, 1, 2}) {
+                gradphi_to_r(spins__.begin(), wf::band_index(i), x);
+                mul_by_veff<T>(spfftk__, spfft_buf, veff_vec_, 6, spfft_buf);
+                vphi_to_G();
+                div_vphi_G(x);
+                add_to_hphi(spins__.begin().get(), wf::band_index(i), 0);
+            }
+
+            /* Will probably look something like this:
+            for {x 0, 1, 2}
+                gradphi_to_r()
+                mul_by_veff(V_tau)
+                vphi_to_G()
+                div_G()
+                add_to_hphi
+            end
+
+            => will need to find a way to add to the existing vphi, and use add_to_hphi only once,
+               or to add a new argument in add_to_hphi to ignore ekin. This might not be optimal,
+               but this is a proof of concept
+
+            */
         }
     }
     PROFILE_STOP("sirius::Local_operator::apply_h|bands");

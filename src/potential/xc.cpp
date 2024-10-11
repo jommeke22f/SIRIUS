@@ -30,10 +30,12 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
     auto gvp = ctx_.gvec_fft_sptr();
 
     bool is_gga = is_gradient_correction();
-
+    bool is_tau = is_meta_tau();
+    
     int num_points = ctx_.spfft<double>().local_slice_size();
 
     Smooth_periodic_function<double> rho(ctx_.spfft<double>(), gvp);
+    Smooth_periodic_function<double> tau(ctx_.spfft<double>(), gvp);
 
     /* we can use this comm for parallelization */
     // auto& comm = ctx_.gvec().comm_ortho_fft();
@@ -53,6 +55,17 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
 
         rhomin        = std::min(rhomin, d);
         rho.value(ir) = std::max(d, 0.0);
+    }
+    /// (WIP)TODO: same for tau, prob. not necessary
+    double taumin{0};
+    for (int ir = 0; ir < num_points; ir++) {
+
+        // int ir = spl_np[irloc];
+        double t = density__.tau().value(ir);
+        t *= (1 + add_delta_rho_xc_);
+
+        taumin        = std::min(taumin, t);
+        tau.value(ir) = std::max(t, 0.0);
     }
     mpi::Communicator(ctx_.spfft<double>().communicator()).allreduce<double, mpi::op_t::min>(&rhomin, 1);
     /* even a small negative density is a sign of something bing wrong; don't remove this check */
@@ -98,6 +111,11 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
     mdarray<double, 1> exc({num_points}, mdarray_label("exc_tmp"));
     mdarray<double, 1> vxc({num_points}, mdarray_label("vxc_tmp"));
 
+    /// (WIP)TODO: meta-GGA quantities. For now, pass laplacian as null_ptr
+    mdarray<double, 1> vtau({num_points}, mdarray_label("vtau_tmp"));
+    double* lapl = nullptr; 
+    double* vlapl = nullptr; 
+
     /* loop over XC functionals */
     for (auto& ixc : xc_func_) {
         PROFILE_START("sirius::Potential::xc_rg_nonmagnetic|libxc");
@@ -133,11 +151,21 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
                                     vxc.at(memory_t::host, spl_t.global_offset()), &vsigma.value(spl_t.global_offset()),
                                     exc.at(memory_t::host, spl_t.global_offset()));
                     }
+                    /// (WIP):TODO get the tau potential. Ignore the laplacian for now
+                    if (ixc.is_mgga()) {
+                        ixc.get_meta(spl_t.local_size(), &rho.value(spl_t.global_offset()),
+                                     &grad_rho_grad_rho.value(spl_t.global_offset()),
+                                     lapl, &tau.value(spl_t.global_offset()),
+                                     vxc.at(memory_t::host, spl_t.global_offset()), 
+                                     &vsigma.value(spl_t.global_offset()),
+                                     vlapl, vtau.at(memory_t::host, spl_t.global_offset()),
+                                     exc.at(memory_t::host, spl_t.global_offset()));
+                    }
                 } // omp parallel region
             } // num_points != 0
         }
         PROFILE_STOP("sirius::Potential::xc_rg_nonmagnetic|libxc");
-        if (ixc.is_gga()) { /* generic for gga and vdw */
+        if (is_gga) { /* generic for gga and vdw */
             #pragma omp parallel for
             for (int ir = 0; ir < num_points; ir++) {
                 /* save for future reuse in XC stress calculation */
@@ -184,7 +212,14 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
             xc_energy_density_->rg().value(ir) += exc(ir);
             xc_potential_->rg().value(ir) += vxc(ir);
         }
+        if (is_tau) {
+            #pragma omp parallel for
+            for (int ir = 0; ir < num_points; ir++) {
+                tau_potential_->rg().value(ir) += vtau(ir);
+            }
+        }
     } // for loop over xc functionals
+    tau_potential_->rg().fft_transform(-1);
 
     if (env::print_checksum()) {
         auto cs = xc_potential_->rg().checksum_rg();
@@ -425,6 +460,7 @@ Potential::xc(Density const& density__)
     /* zero all fields */
     xc_potential_->zero();
     xc_energy_density_->zero();
+    tau_potential_->zero();
     for (int i = 0; i < ctx_.num_mag_dims(); i++) {
         effective_magnetic_field(i).zero();
     }
@@ -451,6 +487,7 @@ Potential::xc(Density const& density__)
         }
         remove_high_pw(ctx_, xc_potential_->rg());
         remove_high_pw(ctx_, xc_energy_density_->rg());
+        remove_high_pw(ctx_, tau_potential_->rg());
     }
 
     if (env::print_hash()) {

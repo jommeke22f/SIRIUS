@@ -87,6 +87,9 @@ Potential::Potential(Simulation_context& ctx__)
         hartree_potential_ = std::make_unique<pf>(ctx_);
         xc_potential_      = std::make_unique<pf>(ctx_);
         xc_energy_density_ = std::make_unique<pf>(ctx_);
+
+        /// (WIP)TODO: should probably test if required
+        tau_potential_ = std::make_unique<pf>(ctx_);
     }
 
     if (this->is_gradient_correction()) {
@@ -225,11 +228,25 @@ Potential::is_gradient_correction() const
 {
     bool is_gga{false};
     for (auto& ixc : xc_func_) {
-        if (ixc.is_gga() || ixc.is_vdw()) {
+        if (ixc.is_gga() || ixc.is_vdw() || ixc.is_mgga()) {
             is_gga = true;
         }
     }
     return is_gga;
+}
+
+/// (WIP)TODO: probably need something finer, because can have either laplacian and/or tau
+///            For now, only do tau
+bool
+Potential::is_meta_tau() const
+{
+    bool is_mgga{false};
+    for (auto& ixc : xc_func_) {
+        if (ixc.is_mgga()) {
+            is_mgga = true;
+        }
+    }
+    return is_mgga;
 }
 
 void

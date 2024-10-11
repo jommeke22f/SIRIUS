@@ -434,6 +434,7 @@ DFT_ground_state::print_info(std::ostream& out__) const
     double s_sum        = kset_.entropy_sum();
     double ekin         = energy_kin(ctx_, kset_, density_, potential_);
     double evxc         = energy_vxc(density_, potential_);
+    double evtau        = energy_vtau(density_, potential_); ///(WIP)TODO: tmp
     double eexc         = energy_exc(density_, potential_);
     double ebxc         = energy_bxc(density_, potential_);
     double evha         = energy_vha(potential_);
@@ -473,6 +474,7 @@ DFT_ground_state::print_info(std::ostream& out__) const
         write_energy("enuc", enuc);
     }
     write_energy("<rho|V^{XC}>", evxc);
+    write_energy("<tau|V^{tau}>", evtau);
     write_energy("<rho|E^{XC}>", eexc);
     write_energy("<mag|B^{XC}>", ebxc);
     write_energy("<rho|V^{H}>", evha);
