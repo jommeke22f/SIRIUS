@@ -162,7 +162,7 @@ DFT_ground_state::check_scf_density()
                             << "Eold: " << gs0["energy"]["total"].get<double>()
                             << " Enew: " << gs1["energy"]["total"].get<double>() << std::endl;
 
-        std::vector<std::string> labels({"total", "vha", "vxc", "exc", "bxc", "veff", "eval_sum", "kin", "ewald",
+        std::vector<std::string> labels({"total", "vha", "vxc", "vtau", "exc", "bxc", "veff", "eval_sum", "kin", "ewald",
                                          "vloc", "scf_correction", "entropy_sum"});
 
         for (auto e : labels) {
@@ -444,7 +444,7 @@ DFT_ground_state::print_info(std::ostream& out__) const
     double ef           = kset_.energy_fermi();
     double enuc         = energy_enuc(ctx_, potential_);
 
-    double one_elec_en = evalsum1 - (evxc + evha + ebxc);
+    double one_elec_en = evalsum1 - (evxc + evtau + evha + ebxc);
 
     if (ctx_.electronic_structure_method() == electronic_structure_method_t::pseudopotential) {
         one_elec_en -= potential_.PAW_one_elec_energy(density_);

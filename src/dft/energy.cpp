@@ -158,7 +158,7 @@ ks_energy(Simulation_context const& ctx, std::map<std::string, double> const& en
 
         case electronic_structure_method_t::pseudopotential: {
             tot_en = energies.at("valence_eval_sum") - energies.at("vxc") - energies.at("bxc") -
-                     energies.at("PAW_one_elec");
+                     energies.at("vtau") - energies.at("PAW_one_elec");
             tot_en += -0.5 * energies.at("vha") + energies.at("exc") + energies.at("PAW_total_energy") +
                       energies.at("ewald");
             if (ctx.hubbard_correction()) {
@@ -208,6 +208,7 @@ total_energy_components(Simulation_context const& ctx, K_point_set const& kset, 
         case electronic_structure_method_t::pseudopotential: {
             table["valence_eval_sum"] = kset.valence_eval_sum();
             table["vxc"]              = energy_vxc(density, potential);
+            table["vtau"]             = energy_vtau(density, potential);
             table["bxc"]              = energy_bxc(density, potential);
             table["PAW_one_elec"]     = potential.PAW_one_elec_energy(density);
             table["vha"]              = energy_vha(potential);
@@ -242,6 +243,7 @@ double
 one_electron_energy(Density const& density, Potential const& potential)
 {
     return energy_vha(potential) + energy_vxc(density, potential) + energy_bxc(density, potential) +
+           energy_vtau(density, potential) +
            potential.PAW_one_elec_energy(density) + one_electron_energy_hubbard(density, potential);
 }
 

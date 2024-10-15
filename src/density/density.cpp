@@ -1167,6 +1167,12 @@ Density::generate(K_point_set const& ks__, bool symmetrize__, bool add_core__, b
     }
     if (symmetrize__) {
         symmetrize_field4d(*this);
+        /// (WIP)TODO: make a test on tau or not. For now, assume spin-restricted
+        std::vector<Smooth_periodic_function<double>*> tau_vec;
+        tau_vec.push_back(tau_.get()); 
+        symmetrize_pw_function(ctx_.unit_cell().symmetry(), ctx_.remap_gvec(), ctx_.sym_phase_factors(), 
+                               ctx_.num_mag_dims(), tau_vec);    
+
         if (ctx_.electronic_structure_method() == electronic_structure_method_t::pseudopotential) {
             std::unique_ptr<density_matrix_t> dm_ref;
             std::unique_ptr<Occupation_matrix> om_ref;
@@ -1256,6 +1262,8 @@ Density::generate(K_point_set const& ks__, bool symmetrize__, bool add_core__, b
 
     if (transform_to_rg__) {
         this->fft_transform(1);
+        /// (WIP)TODO: test on tau
+        tau_->fft_transform(1);
     }
 }
 
@@ -1421,7 +1429,6 @@ Density::generate_valence(K_point_set const& ks__)
     for (int igloc = 0; igloc < ctx_.gvec_coarse().count(); igloc++) {
         tau_->f_pw_local(ctx_.gvec().gvec_base_mapping(igloc)) = tau_coarse_->f_pw_local(igloc);
     }
-    tau_->fft_transform(1);
 
     if (!ctx_.full_potential()) {
         augment();

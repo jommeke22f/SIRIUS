@@ -106,7 +106,7 @@ ewald_energy(const Simulation_context& ctx, const fft::Gvec& gvec, const Unit_ce
 double
 energy_vxc(Density const& density, Potential const& potential);
 
-/// (WIP)TODO: tau potential
+/// (WIP)TODO: tau potential. Should it be added with vxc as a single quantity?
 double
 energy_vtau(Density const& density, Potential const& potential);
 

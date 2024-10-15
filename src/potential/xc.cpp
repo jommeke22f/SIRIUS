@@ -55,18 +55,7 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
 
         rhomin        = std::min(rhomin, d);
         rho.value(ir) = std::max(d, 0.0);
-    }
-    /// (WIP)TODO: same for tau, prob. not necessary
-    double taumin{0};
-    for (int ir = 0; ir < num_points; ir++) {
-
-        // int ir = spl_np[irloc];
-        double t = density__.tau().value(ir);
-        t *= (1 + add_delta_rho_xc_);
-
-        taumin        = std::min(taumin, t);
-        tau.value(ir) = std::max(t, 0.0);
-    }
+    } 
     mpi::Communicator(ctx_.spfft<double>().communicator()).allreduce<double, mpi::op_t::min>(&rhomin, 1);
     /* even a small negative density is a sign of something bing wrong; don't remove this check */
     if (rhomin < 0.0 && ctx_.comm().rank() == 0) {
@@ -106,6 +95,16 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
 
         vsigma = Smooth_periodic_function<double>(ctx_.spfft<double>(), ctx_.gvec_fft_sptr());
         vsigma_[0]->zero();
+    }
+
+    /// (WIP)TODO: same for tau, prob. not necessary. VASP turns this on with a keyword
+    for (int ir = 0; ir < num_points; ir++) {
+
+        // int ir = spl_np[irloc];
+        double t = grad_rho_grad_rho.value(ir)/(8.0*rho.value(ir));
+
+        //tau.value(ir) = std::max(density__.tau().value(ir), t);
+        tau.value(ir) = std::max(density__.tau().value(ir), 0.0);
     }
 
     mdarray<double, 1> exc({num_points}, mdarray_label("exc_tmp"));

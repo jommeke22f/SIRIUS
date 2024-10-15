@@ -319,9 +319,23 @@ Potential::generate(Density const& density__, bool use_symmetry__, bool transfor
     if (use_symmetry__) {
         /* symmetrize potential and effective magnetic field */
         symmetrize_field4d(*this);
+
+        /// (WIP)TODO: symmetrize Vtau. Is that correct? Because here only effective
+        ///            potential is symmetrized, not xc_potential_ => careful,
+        ///            final density might be correct, but not energy
+        /// Note: seems to do nothing at all, probably that sinve tau is symmetrize, Vtau is too
+        std::vector<Smooth_periodic_function<double>*> tau_vec;
+        tau_vec.push_back(&tau_potential_->rg()); 
+        symmetrize_pw_function(ctx_.unit_cell().symmetry(), ctx_.remap_gvec(), ctx_.sym_phase_factors(), 
+                               ctx_.num_mag_dims(), tau_vec);
+
+
         if (transform_to_rg__) {
             /* transform potential to real space after symmetrization */
             this->fft_transform(1);
+
+            /// (WIP)TODO: tau
+            tau_potential_->rg().fft_transform(1);
         }
     }
 
