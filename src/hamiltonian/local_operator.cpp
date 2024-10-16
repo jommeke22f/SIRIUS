@@ -347,6 +347,7 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
     auto gradphi_to_r = [&](wf::spin_index ispn, wf::band_index i, int x){
         auto phi_mem = phi_fft[ispn.get()].on_device() ? memory_t::device : memory_t::host;
         ///TODO: this assumes CPU only
+        #pragma omp parallel for
         for (int ig = 0; ig < ngv_fft; ig++) {
             buf_pw_[ig] = phi_fft[ispn].pw_coeffs(ig, i) * static_cast<T>(gkvec_cart_(ig, x));
         }
@@ -361,6 +362,7 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
     /// (WIP)TODO: compute the divergence of vphi(G) in place, for a given direction
     auto div_vphi_G = [&](int x){
         ///TODO: this assumes CPU only
+        #pragma omp parallel for
         for (int ig = 0; ig < ngv_fft; ig++) {
             vphi_[ig] *= static_cast<T>(gkvec_cart_(ig, x));
         }
