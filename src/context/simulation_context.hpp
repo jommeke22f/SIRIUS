@@ -764,7 +764,7 @@ class Simulation_context : public Simulation_parameters
 
     /// Export parameters of simulation context as a JSON dictionary.
     nlohmann::json
-    serialize()
+    serialize() const
     {
         nlohmann::json dict;
         dict["config"] = cfg().dict();

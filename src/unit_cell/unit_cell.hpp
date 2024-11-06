@@ -242,7 +242,7 @@ class Unit_cell
     /// Get a simple simple chemical formula bases on the total unit cell.
     /** Atoms of each type are counted and packed in a string. For example, O2Ni2 or La2O4Cu */
     std::string
-    chemical_formula();
+    chemical_formula() const;
 
     /// Update the parameters that depend on atomic positions or lattice vectors.
     void

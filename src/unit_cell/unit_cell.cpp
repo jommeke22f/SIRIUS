@@ -596,7 +596,7 @@ Unit_cell::generate_radial_integrals()
 }
 
 std::string
-Unit_cell::chemical_formula()
+Unit_cell::chemical_formula() const
 {
     std::string name;
     for (int iat = 0; iat < num_atom_types(); iat++) {
