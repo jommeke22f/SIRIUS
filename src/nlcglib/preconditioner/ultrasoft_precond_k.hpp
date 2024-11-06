@@ -28,7 +28,7 @@ class OperatorBase
 {
   public:
     OperatorBase(int n)
-        : n(n){};
+        : n(n) {};
     OperatorBase() = delete;
 
     int

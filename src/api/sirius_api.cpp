@@ -6161,13 +6161,13 @@ sirius_linear_solver(void* const* gs_handler__, double const* vkq__, int const* 
                 mdarray<std::complex<double>, 3> dvpsi({*ld__, *num_spin_comp__, nbnd_occ_k}, dvpsi__);
 
                 auto dpsi_wf  = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_k),
-                                                                     wf::num_mag_dims(0), false);
+                                                                      wf::num_mag_dims(0), false);
                 auto psi_wf   = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_kq),
-                                                                    wf::num_mag_dims(0), false);
+                                                                      wf::num_mag_dims(0), false);
                 auto dvpsi_wf = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_k),
                                                                       wf::num_mag_dims(0), false);
                 auto tmp_wf   = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_k),
-                                                                    wf::num_mag_dims(0), false);
+                                                                      wf::num_mag_dims(0), false);
 
                 for (int ispn = 0; ispn < *num_spin_comp__; ispn++) {
                     for (int i = 0; i < nbnd_occ_kq; i++) {

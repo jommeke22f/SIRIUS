@@ -213,7 +213,7 @@ Potential::generate_D_operator_matrix()
                 }
             }
         } // iv
-    }     // iat
+    } // iat
 }
 
 } // namespace sirius

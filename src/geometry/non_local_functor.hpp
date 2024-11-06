@@ -162,10 +162,10 @@ add_k_point_contribution_nonlocal(Simulation_context& ctx__, Beta_projectors_bas
                                 for_bnd(ibf, jbf, dij, 0.0, beta_phi_chunks[ispn + spin_factor]);
                             }
                         } // jbf
-                    }     // ibf
-                }         // ia_chunk
-            }             // ispn
-        }                 // x
+                    } // ibf
+                } // ia_chunk
+            } // ispn
+        } // x
     }
 
     // bp_base__.dismiss();

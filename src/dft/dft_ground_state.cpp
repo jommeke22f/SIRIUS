@@ -86,7 +86,7 @@ DFT_ground_state::energy_kin_sum_pw() const
             }
             ekin += 0.5 * d * kp->weight() * Gk.length2();
         } // igloc
-    }     // ikloc
+    } // ikloc
     ctx_.comm().allreduce(&ekin, 1);
     return ekin;
 }
