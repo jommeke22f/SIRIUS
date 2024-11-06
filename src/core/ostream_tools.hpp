@@ -30,7 +30,7 @@ class null_stream_t : public std::ostream
     {
     }
     null_stream_t(null_stream_t&&)
-        : std::ostream(nullptr){};
+        : std::ostream(nullptr) {};
 };
 
 null_stream_t&

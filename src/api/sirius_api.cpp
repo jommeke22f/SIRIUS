@@ -2479,7 +2479,7 @@ void
 sirius_set_pw_coeffs(void* const* gs_handler__, char const* label__, std::complex<double> const* pw_coeffs__,
                      bool const* transform_to_rg__, int const* ngv__, int* gvl__, int const* comm__, int* error_code__)
 {
-    PROFILE("sirius_api::sirius_set_pw_coeffs");
+    PROFILE("api::sirius::set_pw_coeffs");
     call_sirius(
             [&]() {
                 auto& gs = get_gs(gs_handler__);
@@ -2602,7 +2602,7 @@ void
 sirius_get_pw_coeffs(void* const* gs_handler__, char const* label__, std::complex<double>* pw_coeffs__,
                      int const* ngv__, int* gvl__, int const* comm__, int* error_code__)
 {
-    PROFILE("sirius_api::sirius_get_pw_coeffs");
+    PROFILE("api::sirius::get_pw_coeffs");
 
     call_sirius(
             [&]() {
@@ -3277,7 +3277,7 @@ sirius_get_wave_functions(void* const* ks_handler__, double const* vkl__, int co
                           int const* gvec_loc__, std::complex<double>* evec__, int const* ld__,
                           int const* num_spin_comp__, int* error_code__)
 {
-    PROFILE("sirius_api::sirius_get_wave_functions");
+    PROFILE("api::sirius::get_wave_functions");
 
     // TODO: refactor this part; use QE order of G-vectors
 
@@ -5135,7 +5135,7 @@ sirius_set_rg_values(void* const* gs_handler__, char const* label__, int const* 
                      int const* local_box_origin__, int const* local_box_size__, int const* fcomm__,
                      double const* values__, bool const* transform_to_pw__, int* error_code__)
 {
-    PROFILE("sirius_api::sirius_set_rg_values");
+    PROFILE("api::sirius::set_rg_values");
 
     call_sirius(
             [&]() {
@@ -5269,7 +5269,7 @@ sirius_get_rg_values(void* const* gs_handler__, char const* label__, int const* 
                      int const* local_box_origin__, int const* local_box_size__, int const* fcomm__, double* values__,
                      bool const* transform_to_rg__, int* error_code__)
 {
-    PROFILE("sirius_api::sirius_get_rg_values");
+    PROFILE("api::sirius::get_rg_values");
 
     call_sirius(
             [&]() {
@@ -6105,7 +6105,7 @@ sirius_linear_solver(void* const* gs_handler__, double const* vkq__, int const* 
                      double const* tol__, int* niter__, int* error_code__)
 {
     using namespace sirius;
-    PROFILE("sirius_api::sirius_linear_solver");
+    PROFILE("api::sirius::linear_solver");
     call_sirius(
             [&]() {
                 /* works for non-magnetic and collinear cases */
@@ -6161,13 +6161,13 @@ sirius_linear_solver(void* const* gs_handler__, double const* vkq__, int const* 
                 mdarray<std::complex<double>, 3> dvpsi({*ld__, *num_spin_comp__, nbnd_occ_k}, dvpsi__);
 
                 auto dpsi_wf  = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_k),
-                                                                     wf::num_mag_dims(0), false);
+                                                                      wf::num_mag_dims(0), false);
                 auto psi_wf   = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_kq),
-                                                                    wf::num_mag_dims(0), false);
+                                                                      wf::num_mag_dims(0), false);
                 auto dvpsi_wf = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_k),
                                                                       wf::num_mag_dims(0), false);
                 auto tmp_wf   = sirius::wave_function_factory<double>(sctx, kp, wf::num_bands(nbnd_occ_k),
-                                                                    wf::num_mag_dims(0), false);
+                                                                      wf::num_mag_dims(0), false);
 
                 for (int ispn = 0; ispn < *num_spin_comp__; ispn++) {
                     for (int i = 0; i < nbnd_occ_kq; i++) {
@@ -6341,7 +6341,7 @@ sirius_generate_rhoaug_q(void* const* gs_handler__, int const* iat__, int const*
                          int* error_code__)
 {
     using namespace sirius;
-    PROFILE("sirius_api::sirius_generate_rhoaug_q");
+    PROFILE("api::sirius::generate_rhoaug_q");
     call_sirius(
             [&]() {
                 auto& gs   = get_gs(gs_handler__);
@@ -6448,6 +6448,7 @@ sirius_save_state:
 void
 sirius_save_state(void** gs_handler__, const char* file_name__, int* error_code__)
 {
+    PROFILE("api::sirius::save_state");
     call_sirius(
             [&]() {
                 auto& gs = get_gs(gs_handler__);

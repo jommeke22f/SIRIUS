@@ -56,7 +56,7 @@ class Radial_integrals_base
 
         grid_q_ = Radial_grid_lin<double>(static_cast<int>(np__ * qmax_), 0, qmax_);
         spl_q_  = splindex_block<>(grid_q_.num_points(), n_blocks(unit_cell_.comm().size()),
-                                  block_id(unit_cell_.comm().rank()));
+                                   block_id(unit_cell_.comm().rank()));
     }
 
     /// Get starting index iq and delta dq for the q-point on the linear grid.

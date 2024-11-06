@@ -734,7 +734,7 @@ Density::add_k_point_contribution_rg(K_point<T>* kp__, std::array<wf::Wave_funct
                 add_k_point_contribution_rg_collinear(kp__->spfft_transform(), ispn, w, inp_wf, nr, ctx_.gamma_point(),
                                                       density_rg);
             }
-        }    // ispn
+        } // ispn
     } else { /* non-collinear case */
         /* allocate on CPU or GPU */
         mdarray<std::complex<T>, 1> psi_r_up({nr}, get_memory_pool(memory_t::host));

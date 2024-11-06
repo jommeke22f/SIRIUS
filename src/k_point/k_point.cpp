@@ -167,7 +167,7 @@ K_point<T>::initialize()
             hubbard_wave_functions_S_ = std::make_unique<wf::Wave_functions<T>>(
                     gkvec_, wf::num_mag_dims(0), wf::num_bands(nwfh), ctx_.host_memory_t());
             atomic_wave_functions_   = std::make_unique<wf::Wave_functions<T>>(gkvec_, wf::num_mag_dims(0),
-                                                                             wf::num_bands(nwf), ctx_.host_memory_t());
+                                                                               wf::num_bands(nwf), ctx_.host_memory_t());
             atomic_wave_functions_S_ = std::make_unique<wf::Wave_functions<T>>(
                     gkvec_, wf::num_mag_dims(0), wf::num_bands(nwf), ctx_.host_memory_t());
         }
@@ -231,7 +231,7 @@ K_point<T>::generate_hubbard_orbitals()
             /* save phi and sphi */
 
             wf_tmp  = std::make_unique<wf::Wave_functions<T>>(gkvec_, wf::num_mag_dims(0), wf::num_bands(nwf),
-                                                             ctx_.host_memory_t());
+                                                              ctx_.host_memory_t());
             swf_tmp = std::make_unique<wf::Wave_functions<T>>(gkvec_, wf::num_mag_dims(0), wf::num_bands(nwf),
                                                               ctx_.host_memory_t());
 
@@ -268,8 +268,6 @@ K_point<T>::generate_hubbard_orbitals()
             //    RTE_OUT(std::cout) << "orthogonalization error " << diff << std::endl;
             //}
         }
-
-        // beta_projectors().dismiss();
     }
 
     if (pcs) {

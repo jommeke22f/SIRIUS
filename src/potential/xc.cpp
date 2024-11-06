@@ -134,7 +134,7 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
                                     exc.at(memory_t::host, spl_t.global_offset()));
                     }
                 } // omp parallel region
-            }     // num_points != 0
+            } // num_points != 0
         }
         PROFILE_STOP("sirius::Potential::xc_rg_nonmagnetic|libxc");
         if (ixc.is_gga()) { /* generic for gga and vdw */
@@ -307,7 +307,7 @@ Potential::xc_rg_magnetic(Density const& density__, bool use_lapl__)
                                     exc.at(memory_t::host, spl_t.global_offset()));
                     }
                 } // omp parallel region
-            }     // num_points != 0
+            } // num_points != 0
         }
         PROFILE_STOP("sirius::Potential::xc_rg_magnetic|libxc");
         if (ixc.is_gga()) {

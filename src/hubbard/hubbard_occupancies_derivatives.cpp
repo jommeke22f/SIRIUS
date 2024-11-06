@@ -358,9 +358,9 @@ Hubbard::compute_occupancies_derivatives(K_point<double>& kp__, Q_operator<doubl
                                                 phi_hub_s_psi_deriv, psi_s_phi_hub[ispn],
                                                 dn__.at(mt, 0, 0, ispn, x, ja), dn__.ld());
                 } // ispn
-            }     // i
-        }         // x
-    }             // ichunk
+            } // i
+        } // x
+    } // ichunk
 
     if (ctx_.processing_unit() == device_t::GPU) {
         dn__.copy_to(memory_t::host);
