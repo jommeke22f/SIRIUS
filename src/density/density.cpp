@@ -1772,6 +1772,21 @@ Density::generate_valence_mt()
                                                   unit_cell_.atom(it.i).symmetry_class().radial_function(ir, idxrf1) *
                                                   unit_cell_.atom(it.i).symmetry_class().radial_function(ir, idxrf2);
                 }
+
+                /// (WIP)TODO: Calculate here (or around here) the muffin-tin part of tau
+                /// According to PhysRevB.91.075101, the kinetic energy density can be expressed as:
+                /// tau = 0.5*[ lapl(rho) - sum_jk lapl(psi_jk)*psi_jk - sum_jk psi_jk*lapl(psi_jk)]
+                /// The first bit, lapl(rho) is straight forward: rho is already calculated as a 
+                /// spectral function, and the laplacian is implemented for it.
+                /// For the second and third term, we need to use the relation:
+                /// lapl(u(r)*Y_lm) = [u''(r) + 2u'(r)/r - l(l+1)u(r)/r^2]*Y_lm, where only the radial
+                /// part is affected. Since the muffin-tin basis functions follow this format, we only
+                /// have to make a modification for the radial part as well. In this loop over products
+                /// of u_1(r)*u_2(r), we can calculate the contributions of the laplacians by accessing
+                /// the l quantum number with atom_type_.indexr(idxrf).am.l(), and the u''(r) and u'(r)
+                /// derivatives with a spline. Then, we contract with the density matrix the same way
+                /// it is done for the density
+
             }
         }
         for (int j = 0; j < ctx_.num_mag_dims() + 1; j++) {

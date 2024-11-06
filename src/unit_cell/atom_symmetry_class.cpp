@@ -846,6 +846,16 @@ Atom_symmetry_class::generate_core_charge_density(relativity_t core_rel__)
             }
 
             level_energy[ist] = bs.enu();
+
+            ///(WIP)TODO: it looks like, for the core states, it is just a sum over l, without
+            ///           cross terms. Therefore, it is the same for the kinetic energy density
+            /// tau = lapl (rho) - sum_l u_l*lapl(u_l) - sum_l lapl(u_l)*u_l
+            /// Like for the valence rho, we take the laplacian of the whole density at the end
+            /// As for the sum over l, we need to create a spline to calulate the derivatives,
+            /// and do the usual lapl u_l = u'' + 2u'/r - l(l+1)u/r^2
+            /// For each core state, l is available as atom_type_.atomic_level(ist).l,
+            /// and u_l as bs.u() (where bs.rho(i) = bs.u(i)^2). Note: careful in case of relativity
+
         }
     }
     for (int ist = 0; ist < atom_type_.num_atomic_levels(); ist++) {

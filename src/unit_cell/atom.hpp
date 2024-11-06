@@ -154,6 +154,19 @@ class Atom
             for (int lm = 0; lm < lmmax; lm++) {
                 int l = l_by_lm[lm];
 
+                ///(WIP)TODO: I feel that compupting the radial integrals matrix elements for tau
+                ///           should not be too complicated.  Indeed, using the usual relation:
+                /// grad phi_i* V *grad phi_j = V [lapl(phi_i*phi_j) - phi_i*lapl(phi_j) - lapl(phi_i)*phi_j]
+                /// and the usual Laplacian for spherical Harmonics: u'' +2u'/r -l(l+1)u/r^2
+                /// The l numbers for phi_i and phi_j are straight forward to access (l1, l2 in loop below)
+                /// The l number of the product of phi_i*phi_j is, by construction, the l above
+                /// Splines would need to be created to get the radial derivatives of u_1, u_2 and the
+                /// product of (u_1*u_2)
+
+                /// the spherical term, when lm=0, might be a tad bit tricker, but I don't think so
+                /// Note: doing changes at this level should cover APW-APW block of the Hamiltonian
+                ///       (in the MT zones), and also the APW-lo blocks, and the lo-lo block
+
                 for (int i2 = 0; i2 < type().indexr().size(); i2++) {
                     int l2 = type().indexr(i2).am.l();
                     for (int i1 = 0; i1 <= i2; i1++) {

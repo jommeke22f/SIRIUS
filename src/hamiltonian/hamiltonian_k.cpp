@@ -665,6 +665,12 @@ Hamiltonian_k<T>::set_fv_h_o_it(la::dmatrix<std::complex<T>>& h__, la::dmatrix<s
             auto gkvec_row_cart = kp.gkvec_row().gkvec_cart(gvec_index_t::local(igk_row));
             int ig12            = H0().ctx().gvec().index_g12(gvec_row, gvec_col);
 
+            ///(WIP)TODO: that is where we add the interstitial part of the Hamiltonian:
+            ///           grad phi_i * Vtau_eff * grad phi_j. Would need to compute Vtau_eff
+            ///           somewhere (Vtau multiplied by step function). See generate_pw_coeffs.cpp,
+            ///           for how it is done with the effective potential. grad phi_i is straight
+            ///           forward for plane-waves (just multiply by G)
+
             h__(igk_row, igk_col) += H0().potential().veff_pw(ig12);
             o__(igk_row, igk_col) += H0().ctx().theta_pw(ig12);
 
