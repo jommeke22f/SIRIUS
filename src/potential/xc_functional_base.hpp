@@ -1643,7 +1643,7 @@ class XC_functional_base
     /// (WIP)TODO: get the tau functional information from Libxc. For now, assume we need tau and lapl
     ///            also, only take care of spin-restricted
     void
-    get_meta(const int size, const double* rho, const double* sigma, const double* lapl, const double* tau, 
+    get_meta(const int size, const double* rho, const double* sigma, const double* lapl, const double* tau,
              double* vrho, double* vsigma, double* vlapl, double* vtau, double* e) const
     {
         if (family() != XC_FAMILY_MGGA)
@@ -1657,7 +1657,7 @@ class XC_functional_base
                 RTE_THROW(s);
             }
 
-            ///TODO: for now, assume we need tau. Maybe will need a test somewhere
+            /// TODO: for now, assume we need tau. Maybe will need a test somewhere
             if (tau[i] < 0.0) {
                 std::stringstream s;
                 s << "tau is negative : " << double_to_string(tau[i]);
@@ -1672,11 +1672,10 @@ class XC_functional_base
                 e[i]      = -0.001 * (rho[i] * sigma[i]);
                 vrho[i]   = -0.001 * sigma[i];
                 vsigma[i] = -0.001 * rho[i];
-                vlapl[i]   = -0.001 * lapl[i];
-                vtau[i] = -0.001 * tau[i];
+                vlapl[i]  = -0.001 * lapl[i];
+                vtau[i]   = -0.001 * tau[i];
             }
         }
-
     }
 
     /// Get spin-resolved GGA contribution.

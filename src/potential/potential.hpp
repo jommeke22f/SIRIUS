@@ -875,7 +875,7 @@ class Potential : public Field4D
     auto
     energy_vtau(Density const& density__) const
     {
-        return inner(density__.tau(), tau_potential().rg());
+        return inner(density__.tau(), tau_potential());
     }
 
     /// Integral of \f$ \rho({\bf r}) \epsilon^{XC}({\bf r}) \f$.

@@ -325,10 +325,9 @@ Potential::generate(Density const& density__, bool use_symmetry__, bool transfor
         ///            final density might be correct, but not energy
         /// Note: seems to do nothing at all, probably that sinve tau is symmetrize, Vtau is too
         std::vector<Smooth_periodic_function<double>*> tau_vec;
-        tau_vec.push_back(&tau_potential_->rg()); 
-        symmetrize_pw_function(ctx_.unit_cell().symmetry(), ctx_.remap_gvec(), ctx_.sym_phase_factors(), 
+        tau_vec.push_back(&tau_potential_->rg());
+        symmetrize_pw_function(ctx_.unit_cell().symmetry(), ctx_.remap_gvec(), ctx_.sym_phase_factors(),
                                ctx_.num_mag_dims(), tau_vec);
-
 
         if (transform_to_rg__) {
             /* transform potential to real space after symmetrization */

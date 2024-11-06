@@ -31,7 +31,7 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
 
     bool is_gga = is_gradient_correction();
     bool is_tau = is_meta_tau();
-    
+
     int num_points = ctx_.spfft<double>().local_slice_size();
 
     Smooth_periodic_function<double> rho(ctx_.spfft<double>(), gvp);
@@ -55,7 +55,7 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
 
         rhomin        = std::min(rhomin, d);
         rho.value(ir) = std::max(d, 0.0);
-    } 
+    }
     mpi::Communicator(ctx_.spfft<double>().communicator()).allreduce<double, mpi::op_t::min>(&rhomin, 1);
     /* even a small negative density is a sign of something bing wrong; don't remove this check */
     if (rhomin < 0.0 && ctx_.comm().rank() == 0) {
@@ -101,10 +101,10 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
     for (int ir = 0; ir < num_points; ir++) {
 
         // int ir = spl_np[irloc];
-        double t = grad_rho_grad_rho.value(ir)/(8.0*rho.value(ir));
+        double t = grad_rho_grad_rho.value(ir) / (8.0 * rho.value(ir));
 
-        //tau.value(ir) = std::max(density__.tau().value(ir), t);
-        tau.value(ir) = std::max(density__.tau().value(ir), 0.0);
+        // tau.value(ir) = std::max(density__.tau().value(ir), t);
+        tau.value(ir) = std::max(density__.tau().rg().value(ir), 0.0);
     }
 
     mdarray<double, 1> exc({num_points}, mdarray_label("exc_tmp"));
@@ -112,8 +112,8 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
 
     /// (WIP)TODO: meta-GGA quantities. For now, pass laplacian as null_ptr
     mdarray<double, 1> vtau({num_points}, mdarray_label("vtau_tmp"));
-    double* lapl = nullptr; 
-    double* vlapl = nullptr; 
+    double* lapl  = nullptr;
+    double* vlapl = nullptr;
 
     /* loop over XC functionals */
     for (auto& ixc : xc_func_) {
@@ -153,11 +153,10 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
                     /// (WIP):TODO get the tau potential. Ignore the laplacian for now
                     if (ixc.is_mgga()) {
                         ixc.get_meta(spl_t.local_size(), &rho.value(spl_t.global_offset()),
-                                     &grad_rho_grad_rho.value(spl_t.global_offset()),
-                                     lapl, &tau.value(spl_t.global_offset()),
-                                     vxc.at(memory_t::host, spl_t.global_offset()), 
-                                     &vsigma.value(spl_t.global_offset()),
-                                     vlapl, vtau.at(memory_t::host, spl_t.global_offset()),
+                                     &grad_rho_grad_rho.value(spl_t.global_offset()), lapl,
+                                     &tau.value(spl_t.global_offset()), vxc.at(memory_t::host, spl_t.global_offset()),
+                                     &vsigma.value(spl_t.global_offset()), vlapl,
+                                     vtau.at(memory_t::host, spl_t.global_offset()),
                                      exc.at(memory_t::host, spl_t.global_offset()));
                     }
                 } // omp parallel region

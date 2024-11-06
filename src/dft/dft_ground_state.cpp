@@ -162,8 +162,8 @@ DFT_ground_state::check_scf_density()
                             << "Eold: " << gs0["energy"]["total"].get<double>()
                             << " Enew: " << gs1["energy"]["total"].get<double>() << std::endl;
 
-        std::vector<std::string> labels({"total", "vha", "vxc", "vtau", "exc", "bxc", "veff", "eval_sum", "kin", "ewald",
-                                         "vloc", "scf_correction", "entropy_sum"});
+        std::vector<std::string> labels({"total", "vha", "vxc", "vtau", "exc", "bxc", "veff", "eval_sum", "kin",
+                                         "ewald", "vloc", "scf_correction", "entropy_sum"});
 
         for (auto e : labels) {
             RTE_OUT(ctx_.out()) << "energy component: " << e << ", diff: "

@@ -227,7 +227,9 @@ class Density : public Field4D
     std::array<std::unique_ptr<Smooth_periodic_function<double>>, 4> rho_mag_coarse_;
 
     /// (WIP)TODO: kinetic energy density. For now, assume spin restricted system
-    std::unique_ptr<Smooth_periodic_function<double>> tau_;
+    /// Store tau_ as a Periodic function to have both PW and muffin-tin. In the
+    /// future, might want to store tau_ as a Field4D
+    std::unique_ptr<Periodic_function<double>> tau_;
     std::unique_ptr<Smooth_periodic_function<double>> tau_coarse_;
 
     /// Pointer to pseudo core charge density

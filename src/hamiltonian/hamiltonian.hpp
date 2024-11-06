@@ -575,18 +575,18 @@ Hamiltonian0<T>::operator()(K_point<T>& kp__) const
  *  \f$ \kappa = \{\ell, \lambda\} \f$. We will focus on the product of two gradients and use
  *  the following relation
  *  \f[
- *    \nabla \varphi_{\xi}^{*} \nabla \varphi_{\xi'} = 
+ *    \nabla \varphi_{\xi}^{*} \nabla \varphi_{\xi'} =
  *    \frac{1}{2} \left( \nabla^2 (\varphi_{\xi}^{*} \varphi_{\xi'}) - \varphi_{\xi}^{*} \nabla^2 \varphi_{\xi'} -
  *     \varphi_{\xi'} \nabla^2 \varphi_{\xi}^{*} \right) = \sum_{L}p_{L}^{ij}(r) R_{L}(\hat{\bf r})
  *  \f]
  *  Laplacian in spherical coordinates acts on spherical function in the following way:
  *  \f[
- *  \nabla^2 \left( f Y_{L} \right) = \left( \frac{d^2 f}{dr^2} + \frac{2}{r} \frac{df}{dr} - 
+ *  \nabla^2 \left( f Y_{L} \right) = \left( \frac{d^2 f}{dr^2} + \frac{2}{r} \frac{df}{dr} -
  *    \frac{\ell(\ell + 1)}{r^2} f(r) \right) Y_{L}(\hat {\bf r}) = \tilde f(r)Y_{L}(\hat {\bf r})
  *  \f]
  *  So the task is to find radial functions \f$ p_{L}^{ij}(r) \f$ of the product of gradients of spherical functions.
  *  We are aiming at expansion in real spherical harmonics because later we are going to integrate it with the
- *  tau-potential which is also expanded in real harmonics. 
+ *  tau-potential which is also expanded in real harmonics.
  *
  *  First term:
  *  \f[
@@ -614,7 +614,7 @@ Hamiltonian0<T>::operator()(K_point<T>& kp__) const
  *  Third term:
  *  \f[
  *    \varphi_{\xi'} \nabla^2 \varphi_{\xi}^{*} =
- *     f_{\kappa_{\xi'}}(r) Y_{L_{\xi'}} \tilde f_{\kappa_{\xi}}(r) Y_{L_{\xi}}^{*} = 
+ *     f_{\kappa_{\xi'}}(r) Y_{L_{\xi'}} \tilde f_{\kappa_{\xi}}(r) Y_{L_{\xi}}^{*} =
  *     \sum_{L}  p_{2, L}^{\kappa \kappa'}(r) R_{L}
  *  \f]
  *  where
@@ -625,15 +625,15 @@ Hamiltonian0<T>::operator()(K_point<T>& kp__) const
  *  \f]
  *  We can now combine three terms:
  *  \f[
- *    p_{L}^{\kappa,\kappa'}(r) = \frac{1}{2} \langle Y_{L_{\xi}} | R_{L} | Y_{L_{\xi'}} \rangle \left( 
- *      \widetilde{f_{\kappa_{\xi}} f_{\kappa_{\xi'}}} -  f_{\kappa_{\xi}} \tilde f_{\kappa_{\xi'}} - 
+ *    p_{L}^{\kappa,\kappa'}(r) = \frac{1}{2} \langle Y_{L_{\xi}} | R_{L} | Y_{L_{\xi'}} \rangle \left(
+ *      \widetilde{f_{\kappa_{\xi}} f_{\kappa_{\xi'}}} -  f_{\kappa_{\xi}} \tilde f_{\kappa_{\xi'}} -
  *      \tilde f_{\kappa_{\xi}} f_{\kappa_{\xi'}} \right)
  *  \f]
  *  Now we can compute matrix elements of \f$ V_{\tau}({\bf r}) \f$ in muffin-tins:
  *  \f[
- *    \langle \nabla \varphi_{\xi}^{*} | \sum_{L} V_{L}^{\tau}(r) R_{L} | \nabla \varphi_{\xi'} \rangle = 
+ *    \langle \nabla \varphi_{\xi}^{*} | \sum_{L} V_{L}^{\tau}(r) R_{L} | \nabla \varphi_{\xi'} \rangle =
  *      \sum_{L} \frac{1}{2} \langle Y_{L_{\xi}} | R_{L} | Y_{L_{\xi'}} \rangle
- *      \int \left( \widetilde{f_{\kappa_{\xi}} f_{\kappa_{\xi'}}} -  f_{\kappa_{\xi}} \tilde f_{\kappa_{\xi'}} - 
+ *      \int \left( \widetilde{f_{\kappa_{\xi}} f_{\kappa_{\xi'}}} -  f_{\kappa_{\xi}} \tilde f_{\kappa_{\xi'}} -
  *      \tilde f_{\kappa_{\xi}} f_{\kappa_{\xi'}} \right) V^{\tau}_{L}(r) r^2 dr
  *  \f]
  *  Remember that radial integrals are computed for each atom in the muffin-tin. Atomic index \f$ \alpha \f$ is ommited

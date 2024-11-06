@@ -131,8 +131,9 @@ Local_operator<T>::Local_operator(Simulation_context const& ctx__, fft::spfft_tr
             #pragma omp parallel for schedule(static)
             for (int igloc = 0; igloc < gvec_coarse_p_->gvec().count(); igloc++) {
                 /* map from fine to coarse set of G-vectors */
-                veff_vec_[6]->f_pw_local(igloc) = 0.5*potential__->tau_potential().rg().f_pw_local(
-                        potential__->tau_potential().rg().gvec().gvec_base_mapping(igloc));
+                veff_vec_[6]->f_pw_local(igloc) =
+                        0.5 * potential__->tau_potential().rg().f_pw_local(
+                                      potential__->tau_potential().rg().gvec().gvec_base_mapping(igloc));
             }
             /* transform to real space */
             veff_vec_[6]->fft_transform(1);
@@ -344,9 +345,9 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
 
     /// (WIP)TODO: transform the gradient of the wave function to real space, for a given coord
     /// Can probably use to_gradient() here (see xc.cpp)
-    auto gradphi_to_r = [&](wf::spin_index ispn, wf::band_index i, int x){
+    auto gradphi_to_r = [&](wf::spin_index ispn, wf::band_index i, int x) {
         auto phi_mem = phi_fft[ispn.get()].on_device() ? memory_t::device : memory_t::host;
-        ///TODO: this assumes CPU only
+        /// TODO: this assumes CPU only
         #pragma omp parallel for
         for (int ig = 0; ig < ngv_fft; ig++) {
             buf_pw_[ig] = phi_fft[ispn].pw_coeffs(ig, i) * static_cast<T>(gkvec_cart_(ig, x));
@@ -360,8 +361,8 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
     };
 
     /// (WIP)TODO: compute the divergence of vphi(G) in place, for a given direction
-    auto div_vphi_G = [&](int x){
-        ///TODO: this assumes CPU only
+    auto div_vphi_G = [&](int x) {
+        /// TODO: this assumes CPU only
         #pragma omp parallel for
         for (int ig = 0; ig < ngv_fft; ig++) {
             vphi_[ig] *= static_cast<T>(gkvec_cart_(ig, x));
@@ -372,7 +373,7 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
        spin block (ispn_block) is used as a bit mask:
         - first bit: spin component which is updated
         - second bit: add or not kinetic energy term */
-    auto add_to_hphi = [&](int ispn_block, wf::band_index i, int add_ekin=1) {
+    auto add_to_hphi = [&](int ispn_block, wf::band_index i, int add_ekin = 1) {
         /* index of spin component */
         int ispn = ispn_block & 1;
         /* add kinetic energy if this is a diagonal block */
