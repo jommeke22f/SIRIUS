@@ -174,6 +174,8 @@ Simulation_parameters::import(cmd_args const& args__)
 
     cfg_.iterative_solver().early_restart(
             args__.value("iterative_solver.early_restart", cfg_.iterative_solver().early_restart()));
+    cfg_.iterative_solver().energy_tolerance(
+            args__.value("iterative_solver.energy_tolerance", cfg_.iterative_solver().energy_tolerance()));
     cfg_.mixer().beta(args__.value("mixer.beta", cfg_.mixer().beta()));
     cfg_.mixer().type(args__.value("mixer.type", cfg_.mixer().type()));
 }

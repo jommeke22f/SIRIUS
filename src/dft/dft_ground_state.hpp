@@ -89,7 +89,7 @@ class DFT_ground_state
         n = ctx_.num_itsol_steps();
         kset_.comm().allreduce(&n, 1);
         if (ctx_.verbosity() >= 2) {
-            RTE_OUT(ctx_.out()) << "numbef of iterative solver steps: " << n << std::endl;
+            RTE_OUT(ctx_.out()) << "number of iterative solver steps: " << n << std::endl;
         }
     }
 

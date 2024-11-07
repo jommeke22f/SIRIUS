@@ -82,9 +82,25 @@ preprocess_json_input(std::string fname__)
 std::unique_ptr<Simulation_context>
 create_sim_ctx(std::string fname__, cmd_args const& args__)
 {
-    auto json = preprocess_json_input(fname__);
+    std::string json_string;
+    if (isHDF5(fname__)) {
+        HDF5_tree fin(fname__, hdf5_access_t::read_only);
+        auto dims = fin.dims("config");
+        if (dims.size() != 1) {
+            RTE_THROW("wrong size of config dataset");
+        }
+        std::vector<uint8_t> s_char(dims[0]);
+        fin.read("config", s_char);
+        json_string = std::string(dims[0], ' ');
+        for (int i = 0; i < dims[0]; i++) {
+            json_string[i] = s_char[i];
+        }
+    } else {
+        auto json = preprocess_json_input(fname__);
+        json_string = json.dump();
+    }
 
-    auto ctx_ptr            = std::make_unique<Simulation_context>(json.dump(), mpi::Communicator::world());
+    auto ctx_ptr            = std::make_unique<Simulation_context>(json_string, mpi::Communicator::world());
     Simulation_context& ctx = *ctx_ptr;
 
     auto& inp = ctx.cfg().parameters();
@@ -108,6 +124,12 @@ ground_state(Simulation_context& ctx, int task_id, cmd_args const& args, int wri
                 ctx.out() << "+----------------------+" << std::endl
                           << "| new SCF ground state |" << std::endl
                           << "+----------------------+" << std::endl;
+                break;
+            }
+            case task_t::ground_state_restart: {
+                ctx.out() << "+--------------------------+" << std::endl
+                          << "| restart SCF ground state |" << std::endl
+                          << "+--------------------------+" << std::endl;
                 break;
             }
             case task_t::ground_state_new_relax: {
@@ -149,7 +171,10 @@ ground_state(Simulation_context& ctx, int task_id, cmd_args const& args, int wri
             RTE_THROW("storage file is not found");
         }
         density.load(storage_file_name);
-        potential.load(storage_file_name);
+        //potential.load(storage_file_name);
+        potential.generate(density, ctx.use_symmetry(), true);
+        Hamiltonian0<double> H0(potential, true);
+        initialize_subspace(kset, H0);
     } else {
         dft.initial_state();
     }
@@ -579,6 +604,7 @@ main(int argn, char** argv)
                    {"iterative_solver.orthogonalize=", ""},
                    {"iterative_solver.early_restart=",
                     "{double} value between 0 and 1 to control the early restart ratio in Davidson"},
+                   {"iterative_solver.energy_tolerance=", "{double} starting tolerance of iterative solver"},
                    {"mixer.type=", "{string} mixer name (anderson, anderson_stable, broyden2, linear)"},
                    {"mixer.beta=", "{double} mixing parameter"},
                    {"volume_scale0=", "{double} starting volume scale for EOS calculation"},

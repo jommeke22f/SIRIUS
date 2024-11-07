@@ -70,6 +70,12 @@ struct hdf5_type_wrapper<uint8_t>
     };
 };
 
+inline bool
+isHDF5(std::string const& filename__)
+{
+    return H5Fis_hdf5(filename__.c_str()) > 0;
+}
+
 /// Interface to the HDF5 library.
 class HDF5_tree
 {
