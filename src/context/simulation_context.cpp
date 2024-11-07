@@ -1172,7 +1172,13 @@ Simulation_context::create_storage_file(std::string name__) const
         fout.create_node("parameters");
         fout.create_node("effective_potential");
         fout.create_node("effective_magnetic_field");
+        fout.create_node("xc_energy_density");
+        fout.create_node("xc_potential");
         fout.create_node("density");
+        fout.create_node("density_matrix");
+        for (int ia = 0; ia < this->unit_cell().num_atoms(); ia++) {
+            fout["density_matrix"].create_node(ia);
+        }
         fout.create_node("magnetization");
 
         for (int j = 0; j < num_mag_dims(); j++) {

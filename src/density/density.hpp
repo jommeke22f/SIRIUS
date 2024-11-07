@@ -609,6 +609,12 @@ class Density : public Field4D
             mag(j).hdf5_write(name__, s.str());
         }
         ctx_.comm().barrier();
+        if (ctx_.comm().rank() == 0) {
+            HDF5_tree fout(name__, hdf5_access_t::read_write);
+            for (int ia = 0; ia < unit_cell_.num_atoms(); ia++) {
+                fout["density_matrix"][ia].write("data", this->density_matrix(ia));
+            }
+        }
     }
 
     void
@@ -623,6 +629,10 @@ class Density : public Field4D
         }
         mdarray<int, 2> gv({3, ngv});
         fin.read("/parameters/gvec", gv);
+
+        for (int ia = 0; ia < unit_cell_.num_atoms(); ia++) {
+            fin["density_matrix"][ia].read("data", this->density_matrix(ia));
+        }
 
         rho().hdf5_read(name__, "density", gv);
         rho().rg().fft_transform(1);

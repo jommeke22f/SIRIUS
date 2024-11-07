@@ -171,8 +171,8 @@ ground_state(Simulation_context& ctx, int task_id, cmd_args const& args, int wri
             RTE_THROW("storage file is not found");
         }
         density.load(storage_file_name);
-        //potential.load(storage_file_name);
-        potential.generate(density, ctx.use_symmetry(), true);
+        potential.load(storage_file_name);
+        //potential.generate(density, ctx.use_symmetry(), true);
         Hamiltonian0<double> H0(potential, true);
         initialize_subspace(kset, H0);
     } else {

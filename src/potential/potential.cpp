@@ -379,6 +379,8 @@ Potential::save(std::string name__)
     for (int j = 0; j < ctx_.num_mag_dims(); j++) {
         effective_magnetic_field(j).hdf5_write(name__, "effective_magnetic_field/" + std::to_string(j));
     }
+    xc_energy_density().hdf5_write(name__, "xc_energy_density");
+    xc_potential().hdf5_write(name__, "xc_potential");
     if (ctx_.comm().rank() == 0 && !ctx_.full_potential()) {
         HDF5_tree fout(name__, hdf5_access_t::read_write);
         for (int j = 0; j < ctx_.unit_cell().num_atoms(); j++) {
@@ -404,10 +406,16 @@ Potential::load(std::string name__)
     fin.read("/parameters/gvec", gv);
 
     effective_potential().hdf5_read(name__, "effective_potential", gv);
+    effective_potential().rg().fft_transform(1);
 
     for (int j = 0; j < ctx_.num_mag_dims(); j++) {
         effective_magnetic_field(j).hdf5_read(name__, "effective_magnetic_field/" + std::to_string(j), gv);
+        effective_magnetic_field(j).rg().fft_transform(1);
     }
+    xc_energy_density().hdf5_read(name__, "xc_energy_density", gv);
+    xc_energy_density().rg().fft_transform(1);
+    xc_potential().hdf5_read(name__, "xc_potential", gv);
+    xc_potential().rg().fft_transform(1);
 
     if (ctx_.full_potential()) {
         update_atomic_potential();
