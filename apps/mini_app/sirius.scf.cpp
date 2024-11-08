@@ -100,17 +100,16 @@ create_sim_ctx(std::string fname__, cmd_args const& args__)
         json_string = json.dump();
     }
 
-    auto ctx_ptr            = std::make_unique<Simulation_context>(json_string, mpi::Communicator::world());
-    Simulation_context& ctx = *ctx_ptr;
+    auto ctx = std::make_unique<Simulation_context>(json_string, mpi::Communicator::world());
 
-    auto& inp = ctx.cfg().parameters();
+    auto& inp = ctx->cfg().parameters();
     if (inp.gamma_point() && !(inp.ngridk()[0] * inp.ngridk()[1] * inp.ngridk()[2] == 1)) {
         RTE_THROW("this is not a Gamma-point calculation")
     }
 
-    ctx.import(args__);
+    ctx->import(args__);
 
-    return ctx_ptr;
+    return ctx;
 }
 
 auto
