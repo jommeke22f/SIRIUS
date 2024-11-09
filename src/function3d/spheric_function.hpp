@@ -391,6 +391,27 @@ inner(Spheric_function<domain_t, T> const& f1, Spheric_function<domain_t, T> con
     return s.interpolate().integrate(0);
 }
 
+template <typename T, typename U>
+inline auto
+laplacian_radial(Spline<T> const& flm__, Radial_grid<U> const& rgrid__, int l__)
+{
+    Spline<T> s1(rgrid__);
+
+    /* compute 1st derivative */
+    for (int ir = 0; ir < rgrid__.num_points(); ir++) {
+        s1(ir) = flm__.deriv(1, ir);
+    }
+    s1.interpolate();
+
+    double ll = static_cast<double>(l__ * (l__ + 1));
+
+    for (int ir = 0; ir < rgrid__.num_points(); ir++) {
+        s1(ir) = 2.0 * s1(ir) * rgrid__.x_inv(ir) + s1.deriv(1, ir) -
+                    flm__(ir) * ll / std::pow(rgrid__[ir], 2);
+    }
+    return s1;
+}
+
 /// Compute Laplacian of the spheric function.
 /** Laplacian in spherical coordinates has the following expression:
     \f[
@@ -410,20 +431,22 @@ laplacian(Spheric_function<function_domain_t::spectral, T> const& f__)
 
     Spline<T> s1(rgrid);
     for (int l = 0; l <= lmax; l++) {
-        int ll = l * (l + 1);
+        //int ll = l * (l + 1);
         for (int m = -l; m <= l; m++) {
             int lm = sf::lm(l, m);
             /* get lm component */
             auto s = f__.component(lm);
-            /* compute 1st derivative */
-            for (int ir = 0; ir < s.num_points(); ir++) {
-                s1(ir) = s.deriv(1, ir);
-            }
-            s1.interpolate();
+            auto s1 = laplacian_radial(s, rgrid, l);
+            ///* compute 1st derivative */
+            //for (int ir = 0; ir < s.num_points(); ir++) {
+            //    s1(ir) = s.deriv(1, ir);
+            //}
+            //s1.interpolate();
 
             for (int ir = 0; ir < s.num_points(); ir++) {
-                g(lm, ir) = 2.0 * s1(ir) * rgrid.x_inv(ir) + s1.deriv(1, ir) -
-                            s(ir) * static_cast<double>(ll) / std::pow(rgrid[ir], 2);
+                g(lm, ir) = s1(ir);
+                //g(lm, ir) = 2.0 * s1(ir) * rgrid.x_inv(ir) + s1.deriv(1, ir) -
+                //            s(ir) * static_cast<double>(ll) / std::pow(rgrid[ir], 2);
             }
         }
     }
