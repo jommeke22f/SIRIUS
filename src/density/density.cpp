@@ -883,6 +883,40 @@ add_k_point_contribution_dm_fplapw(Simulation_context const& ctx__, K_point<T> c
     }
 }
 
+/// Add contribution to kinetic energy density from all occupied wave-functions of a given k-point.
+template <typename T>
+static void
+add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> const& kp__)
+{
+    auto& uc = ctx__.unit_cell();
+
+    for (auto it : kp__.spinor_wave_functions().spl_num_atoms()) {
+        int ia            = it.i;
+        int mt_basis_size = uc.atom(ia).type().mt_basis_size();
+
+        Spheric_function<std::complex<T>> psi(ctx__.lmmax_apw(), uc.atom(ia).radial_grid());
+        for (int ispn = 0; ispn < ctx__.num_spins(); ispn++) {
+            for (int j = 0; j < kp__.num_occupied_bands(ispn); j++) {
+
+                psi.zero();
+
+                for (int xi = 0; xi < mt_basis_size; xi++) {
+                    int lm = uc.atom(ia).type().indexb(xi).lm;
+                    int idxrf = uc.atom(ia).type().indexb(xi).idxrf;
+
+                    auto z = kp__.spinor_wave_functions().mt_coeffs(xi, it.li, wf::spin_index(ispn), wf::band_index(j));
+
+                    /* wave-function radial components */
+                    for (int ir = 0; ir < uc.atom(ia).num_mt_points(); ir++) {
+                        psi(lm, ir) += z * uc.atom(ia).symmetry_class().radial_function(ir, idxrf);
+                    }
+                }
+                //kp__.band_occupancy(j, ispn) * kp__.weight();
+            }
+        }
+    }
+}
+
 template <typename T, typename F>
 static void
 add_k_point_contribution_dm_pwpp_collinear(Simulation_context& ctx__, K_point<T>& kp__,
