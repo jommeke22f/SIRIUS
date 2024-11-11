@@ -905,13 +905,14 @@ add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> cons
 {
     auto& uc = ctx__.unit_cell();
 
-    Gaunt_coefficients gc(ctx__.lmax_apw(), ctx__.lmax_pot(), ctx__.lmax_apw(), SHT::gaunt_hybrid);
-
     for (auto it : kp__.spinor_wave_functions().spl_num_atoms()) {
         int ia            = it.i;
         int mt_basis_size = uc.atom(ia).type().mt_basis_size();
+        int lmax_apw = uc.atom(ia).type().lmax_apw();
 
-        Spheric_function<std::complex<T>> psi(ctx__.lmmax_apw(), uc.atom(ia).radial_grid());
+        Gaunt_coefficients gc(lmax_apw, ctx__.lmax_pot(), lmax_apw, SHT::gaunt_hybrid);
+
+        Spheric_function<function_domain_t::spectral, std::complex<T>> psi(lmax_apw, uc.atom(ia).radial_grid());
         for (int ispn = 0; ispn < ctx__.num_spins(); ispn++) {
             for (int j = 0; j < kp__.num_occupied_bands(ispn); j++) {
                 auto w = kp__.band_occupancy(j, ispn) * kp__.weight();
@@ -940,7 +941,7 @@ add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> cons
                             auto lm2 = result.lm2;
                             auto coef = result.coef;
                             for (int ir = 0; ir < uc.atom(ia).num_mt_points(); ir++) {
-                                tau[ispn](lm3, ir, ia) += std::real(std::conj(g[x](lm1, ir)) * g[x](lm2, ir) * coef) * w;
+                                //tau[ispn](lm3, ir, ia) += std::real(std::conj(g[x](lm1, ir)) * g[x](lm2, ir) * coef) * w;
                             }
                         }
                     }
