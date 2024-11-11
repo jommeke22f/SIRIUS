@@ -578,11 +578,12 @@ transform(SHT const& sht__, Spheric_function<function_domain_t::spatial, T> cons
 }
 
 /// Gradient of the function in complex spherical harmonics.
+template <typename T>
 inline auto
-gradient(Spheric_function<function_domain_t::spectral, std::complex<double>> const& f)
+gradient(Spheric_function<function_domain_t::spectral, std::complex<T>> const& f)
 {
-    Spheric_vector_function<function_domain_t::spectral, std::complex<double>> g(f.angular_domain_size(),
-                                                                                 f.radial_grid());
+    Spheric_vector_function<function_domain_t::spectral, std::complex<T>> g(f.angular_domain_size(),
+                                                                            f.radial_grid());
     for (int i = 0; i < 3; i++) {
         g[i].zero();
     }
@@ -590,8 +591,8 @@ gradient(Spheric_function<function_domain_t::spectral, std::complex<double>> con
     int lmax = sf::lmax(f.angular_domain_size());
 
     for (int l = 0; l <= lmax; l++) {
-        double d1 = std::sqrt(double(l + 1) / double(2 * l + 3));
-        double d2 = std::sqrt(double(l) / double(2 * l - 1));
+        auto d1 = std::sqrt(static_cast<T>(l + 1) / (2 * l + 3));
+        auto d2 = std::sqrt(static_cast<T>(l) / (2 * l - 1));
 
         for (int m = -l; m <= l; m++) {
             int lm = sf::lm(l, m);
@@ -602,14 +603,14 @@ gradient(Spheric_function<function_domain_t::spectral, std::complex<double>> con
 
                 if ((l + 1) <= lmax && std::abs(m + mu) <= l + 1) {
                     int lm1  = sf::lm(l + 1, m + mu);
-                    double d = d1 * SHT::clebsch_gordan(l, 1, l + 1, m, mu, m + mu);
+                    auto d = d1 * static_cast<T>(SHT::clebsch_gordan(l, 1, l + 1, m, mu, m + mu));
                     for (int ir = 0; ir < f.radial_grid().num_points(); ir++) {
                         g[j](lm1, ir) += (s.deriv(1, ir) - f(lm, ir) * f.radial_grid().x_inv(ir) * double(l)) * d;
                     }
                 }
                 if ((l - 1) >= 0 && std::abs(m + mu) <= l - 1) {
                     int lm1  = sf::lm(l - 1, m + mu);
-                    double d = d2 * SHT::clebsch_gordan(l, 1, l - 1, m, mu, m + mu);
+                    auto d = d2 * static_cast<T>(SHT::clebsch_gordan(l, 1, l - 1, m, mu, m + mu));
                     for (int ir = 0; ir < f.radial_grid().num_points(); ir++) {
                         g[j](lm1, ir) -= (s.deriv(1, ir) + f(lm, ir) * f.radial_grid().x_inv(ir) * double(l + 1)) * d;
                     }
@@ -618,15 +619,15 @@ gradient(Spheric_function<function_domain_t::spectral, std::complex<double>> con
         }
     }
 
-    std::complex<double> d1(1.0 / std::sqrt(2.0), 0);
-    std::complex<double> d2(0, 1.0 / std::sqrt(2.0));
+    std::complex<T> d1(1.0 / std::sqrt(2.0), 0);
+    std::complex<T> d2(0, 1.0 / std::sqrt(2.0));
 
     for (int ir = 0; ir < f.radial_grid().num_points(); ir++) {
         for (int lm = 0; lm < f.angular_domain_size(); lm++) {
-            std::complex<double> g_p = g[0](lm, ir);
-            std::complex<double> g_m = g[1](lm, ir);
-            g[0](lm, ir)             = d1 * (g_m - g_p);
-            g[1](lm, ir)             = d2 * (g_m + g_p);
+            auto g_p = g[0](lm, ir);
+            auto g_m = g[1](lm, ir);
+            g[0](lm, ir) = d1 * (g_m - g_p);
+            g[1](lm, ir) = d2 * (g_m + g_p);
         }
     }
 

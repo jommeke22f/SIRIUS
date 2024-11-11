@@ -884,11 +884,28 @@ add_k_point_contribution_dm_fplapw(Simulation_context const& ctx__, K_point<T> c
 }
 
 /// Add contribution to kinetic energy density from all occupied wave-functions of a given k-point.
+/** Once wave-functions are computed, muffin=tin kinetic energy density is computed in the following way:
+ *  - gradient is applied to spheric function; its spherical expansion is
+ *  \f[
+ *    {\bf g}({\bf r}) = \nabla \psi({\bf r}) = \sum_{L}g_{L}^{x}(r) Y_{L}
+ *  \f]
+ *  - inner product of gradients is computed analyticaly
+ *  \f[
+ *    \sum_{x} \sum_{L_1} g_{L_1}^{x*}(r) Y_{L_1}^{*} \sum_{L_2} g_{L_2}^{x}(r) Y_{L_2} = \sum_{L_3} f_{L_3}(r) R_{L_3}
+ *  \f]
+ *  where
+ *  \f[
+ *    f_{L_3}(r) =  \sum_{x} \sum_{L_1} \sum_{L_2} g_{L_1}^{x*}(r) g_{L_2}^{x}(r) \langle Y_{L_1} | R_{L_3} | Y_{L_2} \rangle
+ *  \f]
+ *
+ */
 template <typename T>
 static void
 add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> const& kp__)
 {
     auto& uc = ctx__.unit_cell();
+
+    Gaunt_coefficients gc(ctx__.lmax_apw(), ctx__.lmax_pot(), ctx__.lmax_apw(), SHT::gaunt_hybrid);
 
     for (auto it : kp__.spinor_wave_functions().spl_num_atoms()) {
         int ia            = it.i;
@@ -897,6 +914,7 @@ add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> cons
         Spheric_function<std::complex<T>> psi(ctx__.lmmax_apw(), uc.atom(ia).radial_grid());
         for (int ispn = 0; ispn < ctx__.num_spins(); ispn++) {
             for (int j = 0; j < kp__.num_occupied_bands(ispn); j++) {
+                auto w = kp__.band_occupancy(j, ispn) * kp__.weight();
 
                 psi.zero();
 
@@ -911,7 +929,22 @@ add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> cons
                         psi(lm, ir) += z * uc.atom(ia).symmetry_class().radial_function(ir, idxrf);
                     }
                 }
-                //kp__.band_occupancy(j, ispn) * kp__.weight();
+                auto g = gradient(psi);
+                for (int x : {0, 1, 2}) {
+                    for (int lm3 = 0; lm3 < ctx__.lmmax_pot(); lm3++) {
+                        /* <Y_L1 | R_L3 | Y_L2> is mostly sparse; loop only over non-zero elements */
+                        for (int i = 0; i < gc.num_gaunt(lm3); i++) {
+                            /* non-zero coefficient */
+                            auto result = gc.gaunt(lm3, i);
+                            auto lm1 = result.lm1;
+                            auto lm2 = result.lm2;
+                            auto coef = result.coef;
+                            for (int ir = 0; ir < uc.atom(ia).num_mt_points(); ir++) {
+                                tau[ispn](lm3, ir, ia) += std::real(std::conj(g[x](lm1, ir)) * g[x](lm2, ir) * coef) * w;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

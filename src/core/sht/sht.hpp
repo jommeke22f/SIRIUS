@@ -446,7 +446,7 @@ class SHT // TODO: better name
      *  \f]
      */
     static double
-    gaunt_rlm_ylm_rlm(int l1, int l2, int l3, int m1, int m2, int m3)
+    gaunt_rlm_ylm_rlm(int l1, int l2, int l3, int m1, int m2, int m3) // TODO: rename tp gaunt_ryr
     {
         RTE_ASSERT(l1 >= 0);
         RTE_ASSERT(l2 >= 0);
@@ -472,7 +472,7 @@ class SHT // TODO: better name
      *  \f]
      */
     static std::complex<double>
-    gaunt_hybrid(int l1, int l2, int l3, int m1, int m2, int m3)
+    gaunt_hybrid(int l1, int l2, int l3, int m1, int m2, int m3) // TODO: rename to gaunt_yry
     {
         RTE_ASSERT(l1 >= 0);
         RTE_ASSERT(l2 >= 0);
