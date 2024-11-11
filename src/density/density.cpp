@@ -898,6 +898,10 @@ add_k_point_contribution_dm_fplapw(Simulation_context const& ctx__, K_point<T> c
  *    f_{L_3}(r) =  \sum_{x} \sum_{L_1} \sum_{L_2} g_{L_1}^{x*}(r) g_{L_2}^{x}(r) \langle Y_{L_1} | R_{L_3} | Y_{L_2} \rangle
  *  \f]
  *
+ *  Alternative approach: transfrom gradient from spherical harmoics to spherical coordinates and accumulate
+ *  contribution to kinetic energy density in real space. At the end transform back to spectral representation,
+ *  symmetrize and transform back.
+ *
  */
 template <typename T>
 static void
