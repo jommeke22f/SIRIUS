@@ -1240,8 +1240,8 @@ class Enu_finder : public Radial_solver
          * of the derivative. */
         denu = 1e-4;
         e0   = integrate_forward_until(rel__, etop_, l_, 0, chi_p, chi_q, p, dpdr, q, dqdr, false,
-                                       [&denu, sd, &surface_deriv, this](int iter, int nn, double& enu) {
-                                         if (surface_deriv() * sd < 0) {
+                                       [&denu, sd, &surface_deriv](int iter, int nn, double& enu) {
+                                         if (surface_deriv() * sd <= 0 || denu > 20) {
                                              return true;
                                          }
                                          /* do not allow step in energy to grow too much */
@@ -1256,7 +1256,7 @@ class Enu_finder : public Radial_solver
         e1    = e0;
         e2    = e0 + denu;
         ebot_ = integrate_forward_until(rel__, (e1 + e2) / 2, l_, 0, chi_p, chi_q, p, dpdr, q, dqdr, false,
-                                        [&e1, &e2, sd, &surface_deriv, this](int iter, int nn, double& enu) {
+                                        [&e1, &e2, sd, &surface_deriv](int iter, int nn, double& enu) {
                                             if (surface_deriv() * sd > 0) {
                                                 e2 = enu;
                                             } else {

@@ -914,7 +914,7 @@ add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> cons
         int mt_basis_size = uc.atom(ia).type().mt_basis_size();
         int lmax_apw = uc.atom(ia).type().lmax_apw();
 
-        Gaunt_coefficients gc(lmax_apw, ctx__.lmax_pot(), lmax_apw, SHT::gaunt_hybrid);
+        Gaunt_coefficients<std::complex<double>> gc(lmax_apw, ctx__.lmax_pot(), lmax_apw, SHT::gaunt_hybrid);
 
         Spheric_function<function_domain_t::spectral, std::complex<T>> psi(lmax_apw, uc.atom(ia).radial_grid());
         for (int ispn = 0; ispn < ctx__.num_spins(); ispn++) {
