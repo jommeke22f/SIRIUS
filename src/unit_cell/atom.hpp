@@ -538,6 +538,28 @@ class Atom
         return res;
     }
 
+    inline auto
+    radial_integrals_sum_L3_v2(spin_block_t sblock, int idxrf1__, int idxrf2__,
+                            std::vector<gaunt_L3<std::complex<double>>> const& gnt__,
+                            mdarray<double, 2> const& rad_int__) const
+    {
+        auto h_int = [&rad_int__, idxrf1__, idxrf2__](int lm3) { return rad_int__(lm3, packed_index(idxrf1__, idxrf2__)); };
+
+        auto nm = [h_int](const auto& gaunt_l3) { return gaunt_l3.coef * h_int(gaunt_l3.lm3); };
+
+        std::complex<double> res{0};
+        switch (sblock) {
+            case spin_block_t::nm: {
+                res = std::transform_reduce(gnt__.begin(), gnt__.end(), res, std::plus{}, nm);
+                break;
+            }
+            default: {
+                RTE_THROW("unknown value for spin_block_t");
+            }
+        }
+        return res;
+    }
+
     inline int
     num_mt_points() const
     {

@@ -175,6 +175,7 @@ class Hamiltonian_k
   private:
     /// K-point independent part of Hamiltonian.
     Hamiltonian0<T> const& H0_;
+    /// Reference for the k-point.
     K_point<T>& kp_;
     /// Hubbard correction.
     /** In general case it is a k-dependent matrix */

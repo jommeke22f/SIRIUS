@@ -44,6 +44,44 @@ Hamiltonian0<T>::Hamiltonian0(Potential& potential__, bool precompute_lapw__, bo
             }
             ctx_.unit_cell().generate_radial_integrals();
         }
+
+        mdarray<double, 2> rad_int;
+
+        if (false) {
+            for (int ia = 0; ia < ctx_.unit_cell().num_atoms(); ia++) {
+                auto& atom = ctx_.unit_cell().atom(ia);
+                auto& type = atom.type();
+                auto& acls = atom.symmetry_class();
+                int nmt = type.mt_basis_size();
+                int nrf = type.mt_radial_basis_size();
+
+                rad_int = mdarray<double, 2>({ctx_.lmmax_pot(), nrf * (nrf + 1) / 2}, mdarray_label("rad_int"));
+
+                for (int idxrf1 = 0; idxrf1 < nrf; idxrf1++) {
+                    for (int idxrf2 = 0; idxrf2 <= idxrf1; idxrf2++) {
+                        Spline<double> f1(type.radial_grid(), [&](int ir){ return acls.radial_function(ir, idxrf1); });
+                        Spline<double> f2(type.radial_grid(), [&](int ir){ return acls.radial_function(ir, idxrf2); });
+                        Spline<double> f3(type.radial_grid(), [&](int ir){ return f1(ir) * f2(ir); });
+
+                        auto f1p = laplacian_radial(f1, type.radial_grid(), type.indexr().am(rf_index(idxrf1)).l());
+                        auto f2p = laplacian_radial(f2, type.radial_grid(), type.indexr().am(rf_index(idxrf2)).l());
+
+                        Spline<double> p(type.radial_grid());
+                        for (int l = 0; l < ctx_.lmax_pot(); l++) {
+                            auto f3p = laplacian_radial(f3, type.radial_grid(), l);
+                            for (int m = -l; m <= l; m++) {
+                                int lm = sf::lm(l, m);
+                                for (int ir = 0; ir < type.num_mt_points(); ir++) {
+                                    //p(ir) = vtau(lm, ir, ia) * (f3p(ir) - f2(ir) * f1p(ir) - f1(ir) * f2p(ir));
+                                }
+                                rad_int(lm, packed_index(idxrf1, idxrf2)) = 0.5 * p.interpolate().integrate(2);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         hmt_    = std::vector<mdarray<std::complex<T>, 2>>(ctx_.unit_cell().num_atoms());
         auto pu = ctx_.processing_unit();
         #pragma omp parallel
@@ -67,9 +105,16 @@ Hamiltonian0<T>::Hamiltonian0(Potential& potential__, bool precompute_lapw__, bo
                         int idxrf1       = type.indexb(j1).idxrf;
                         hmt_[ia](j1, j2) = atom.radial_integrals_sum_L3(spin_block_t::nm, idxrf1, idxrf2,
                                                                         type.gaunt_coefs().gaunt_vector(lm1, lm2));
+                        if (false) {
+                             hmt_[ia](j1, j2) += atom.radial_integrals_sum_L3_v2(spin_block_t::nm, idxrf1, idxrf2,
+                                                                        type.gaunt_coefs().gaunt_vector(lm1, lm2), rad_int);
+
+
+                        }
                         hmt_[ia](j2, j1) = std::conj(hmt_[ia](j1, j2));
                     }
                 }
+
                 if (pu == device_t::GPU) {
                     hmt_[ia].allocate(memory_t::device).copy_to(memory_t::device, acc::stream_id(tid));
                 }
