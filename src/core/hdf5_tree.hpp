@@ -372,6 +372,38 @@ class HDF5_tree
         }
     }
 
+    /// Get dimensions of the dataset.
+    std::vector<int>
+    dims(std::string const& name__) const
+    {
+        HDF5_group group(file_id_, path_);
+
+        HDF5_dataset dataset(group.id(), name__);
+
+        // Get the dataspace of the dataset
+        hid_t dataspace_id = H5Dget_space(dataset.id());
+        if (dataspace_id < 0) {
+            RTE_THROW("Error getting dataspace");
+        }
+
+        // Get the number of dimensions (rank) of the dataset
+        int ndims = H5Sget_simple_extent_ndims(dataspace_id);
+        if (ndims < 0) {
+            RTE_THROW("Error getting number of dimensions");
+        }
+
+        // Get the dimensions of the dataset
+        hsize_t dims[ndims];
+        if (H5Sget_simple_extent_dims(dataspace_id, dims, NULL) < 0) {
+            RTE_THROW("Error getting dimensions");
+        }
+        std::vector<int> result(ndims);
+        for (int i = 0; i < ndims; i++) {
+            result[i] = dims[i];
+        }
+        return result;
+    }
+
   public:
     /// Constructor to create the HDF5 tree.
     HDF5_tree(std::string const& file_name__, hdf5_access_t access__)
@@ -510,6 +542,16 @@ class HDF5_tree
         write(name, &vec[0], (int)vec.size());
     }
 
+    void
+    write(std::string const& name, std::string const& str)
+    {
+        mdarray<uint8_t, 1> s_char({str.size()});
+        for (size_t i = 0; i < str.size(); i++) {
+            s_char[i] = str[i];
+        }
+        this->write(name, s_char);
+    }
+
     /// Write attribute
     template <typename T>
     void
@@ -646,6 +688,21 @@ class HDF5_tree
         read(name, &vec[0], (int)vec.size());
     }
 
+    inline void
+    read(std::string const& name, std::string& str)
+    {
+        auto d = this->dims(name);
+        if (d.size() != 1) {
+            RTE_THROW("wrong size of config dataset");
+        }
+        std::vector<uint8_t> s_char(d[0]);
+        this->read(name, s_char);
+        str = std::string(d[0], ' ');
+        for (int i = 0; i < d[0]; i++) {
+            str[i] = s_char[i];
+        }
+    }
+
     inline HDF5_tree
     operator[](std::string const& path__)
     {
@@ -658,38 +715,6 @@ class HDF5_tree
     {
         auto new_path = path_ + std::to_string(idx__) + "/";
         return HDF5_tree(file_id_, new_path);
-    }
-
-    /// Get dimensions of the dataset.
-    std::vector<int>
-    dims(std::string const& name__) const
-    {
-        HDF5_group group(file_id_, path_);
-
-        HDF5_dataset dataset(group.id(), name__);
-
-        // Get the dataspace of the dataset
-        hid_t dataspace_id = H5Dget_space(dataset.id());
-        if (dataspace_id < 0) {
-            RTE_THROW("Error getting dataspace");
-        }
-
-        // Get the number of dimensions (rank) of the dataset
-        int ndims = H5Sget_simple_extent_ndims(dataspace_id);
-        if (ndims < 0) {
-            RTE_THROW("Error getting number of dimensions");
-        }
-
-        // Get the dimensions of the dataset
-        hsize_t dims[ndims];
-        if (H5Sget_simple_extent_dims(dataspace_id, dims, NULL) < 0) {
-            RTE_THROW("Error getting dimensions");
-        }
-        std::vector<int> result(ndims);
-        for (int i = 0; i < ndims; i++) {
-            result[i] = dims[i];
-        }
-        return result;
     }
 };
 

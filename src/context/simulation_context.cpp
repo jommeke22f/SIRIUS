@@ -1206,13 +1206,8 @@ Simulation_context::create_storage_file(std::string name__) const
             fout["unit_cell"]["atoms"].create_node(j);
             fout["unit_cell"]["atoms"][j].write("mt_basis_size", unit_cell().atom(j).mt_basis_size());
         }
-
-        auto s = this->serialize()["config"].dump();
-        mdarray<uint8_t, 1> s_char({s.size()});
-        for (size_t i = 0; i < s.size(); i++) {
-            s_char[i] = s[i];
-        }
-        fout.write("config", s_char);
+        auto dict = this->serialize()["config"];
+        fout.write("config", this->serialize()["config"].dump());
     }
     comm_.barrier();
 }

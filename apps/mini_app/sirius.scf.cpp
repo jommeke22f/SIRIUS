@@ -85,16 +85,7 @@ create_sim_ctx(std::string fname__, cmd_args const& args__)
     std::string json_string;
     if (isHDF5(fname__)) {
         HDF5_tree fin(fname__, hdf5_access_t::read_only);
-        auto dims = fin.dims("config");
-        if (dims.size() != 1) {
-            RTE_THROW("wrong size of config dataset");
-        }
-        std::vector<uint8_t> s_char(dims[0]);
-        fin.read("config", s_char);
-        json_string = std::string(dims[0], ' ');
-        for (int i = 0; i < dims[0]; i++) {
-            json_string[i] = s_char[i];
-        }
+        fin.read("config", json_string);
     } else {
         auto json = preprocess_json_input(fname__);
         json_string = json.dump();
