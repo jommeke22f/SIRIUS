@@ -166,12 +166,17 @@ ground_state(Simulation_context& ctx, int task_id, cmd_args const& args, int wri
     auto& density   = dft.density();
 
     if (task_id == task_t::ground_state_restart) {
-        if (!file_exists(storage_file_name)) {
+        auto fname = args.value<fs::path>("input", storage_file_name);
+        if (!isHDF5(fname)) {
+            fname = storage_file_name;
+        }
+        if (!file_exists(fname)) {
             RTE_THROW("storage file is not found");
         }
-        density.load(storage_file_name);
-        potential.load(storage_file_name);
-        //potential.generate(density, ctx.use_symmetry(), true);
+        density.load(fname);
+        density.generate_paw_density();
+        //potential.load(fname);
+        potential.generate(density, ctx.use_symmetry(), true);
         Hamiltonian0<double> H0(potential, true);
         initialize_subspace(kset, H0);
     } else {
@@ -604,6 +609,7 @@ main(int argn, char** argv)
                    {"iterative_solver.early_restart=",
                     "{double} value between 0 and 1 to control the early restart ratio in Davidson"},
                    {"iterative_solver.energy_tolerance=", "{double} starting tolerance of iterative solver"},
+                   {"iterative_solver.num_steps=", "{int} number of steps in iterative solver"},
                    {"mixer.type=", "{string} mixer name (anderson, anderson_stable, broyden2, linear)"},
                    {"mixer.beta=", "{double} mixing parameter"},
                    {"volume_scale0=", "{double} starting volume scale for EOS calculation"},
