@@ -39,6 +39,16 @@ try_parse(std::istream& is)
     return dict;
 }
 
+inline bool
+is_json_string(std::string const& str__) {
+    try {
+        auto json = nlohmann::json::parse(str__);
+        return true;
+    } catch (nlohmann::json::parse_error const&) {
+    }
+    return false;
+}
+
 inline nlohmann::json
 read_json_from_file(std::string const& filename)
 {

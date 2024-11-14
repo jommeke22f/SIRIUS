@@ -1166,6 +1166,9 @@ Simulation_context::update()
 void
 Simulation_context::create_storage_file(std::string name__) const
 {
+    if (!initialized_) {
+        RTE_THROW("Simulation_context must be initialized first");
+    }
     if (comm_.rank() == 0) {
         /* create new hdf5 file */
         HDF5_tree fout(name__, hdf5_access_t::truncate);
@@ -1202,11 +1205,15 @@ Simulation_context::create_storage_file(std::string name__) const
 
         fout.create_node("unit_cell");
         fout["unit_cell"].create_node("atoms");
-        for (int j = 0; j < unit_cell().num_atoms(); j++) {
-            fout["unit_cell"]["atoms"].create_node(j);
-            fout["unit_cell"]["atoms"][j].write("mt_basis_size", unit_cell().atom(j).mt_basis_size());
+        fout["unit_cell"].create_node("atom_types");
+        for (int ia = 0; ia < unit_cell().num_atoms(); ia++) {
+            fout["unit_cell"]["atoms"].create_node(ia);
+            fout["unit_cell"]["atoms"][ia].write("mt_basis_size", unit_cell().atom(ia).mt_basis_size());
         }
-        auto dict = this->serialize()["config"];
+        for (int iat = 0; iat < unit_cell().num_atom_types(); iat++) {
+            fout["unit_cell"]["atom_types"].create_node(iat);
+            fout["unit_cell"]["atom_types"][iat].write("config", unit_cell().atom_type(iat).serialize().dump());
+        }
         fout.write("config", this->serialize()["config"].dump());
     }
     comm_.barrier();

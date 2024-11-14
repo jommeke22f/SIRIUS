@@ -142,16 +142,16 @@ get_section_options(std::string const& section__)
 }
 
 void
-Simulation_parameters::import(std::string const& str__)
-{
-    auto json = read_json_from_file_or_string(str__);
-    import(json);
-}
-
-void
 Simulation_parameters::import(nlohmann::json const& dict__)
 {
     cfg_.import(dict__);
+}
+
+void
+Simulation_parameters::import(std::string const& str__)
+{
+    auto dict = read_json_from_file_or_string(str__);
+    this->import(dict);
 }
 
 void

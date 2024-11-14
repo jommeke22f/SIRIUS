@@ -281,13 +281,6 @@ class Atom_type
     inline void
     read_pseudo_paw(nlohmann::json const& parser);
 
-    /// Read atomic parameters from json file.
-    inline void
-    read_input(std::string const& str__);
-
-    inline void
-    read_input(nlohmann::json const& parser);
-
     /// Read atomic parameters directly from UPF v2 files
 #ifdef SIRIUS_USE_PUGIXML
     inline void
@@ -302,7 +295,7 @@ class Atom_type
 
     /// Initialize descriptors of the augmented-wave radial functions.
     inline void
-    init_aw_descriptors()
+    init_aw_descriptors() //TODO: move to cpp
     {
         RTE_ASSERT(this->lmax_apw() >= -1);
 
@@ -376,6 +369,13 @@ class Atom_type
     /// Move constructor.
     Atom_type(Atom_type&& src) = default;
 
+    /// Read atomic parameters from json file.
+    void
+    read_input(std::string const& str__);
+
+    void
+    read_input(nlohmann::json const& parser);
+
     /// Initialize the atom type.
     /** Once the unit cell is populated with all atom types and atoms, each atom type can be initialized. */
     void
@@ -398,6 +398,10 @@ class Atom_type
     /// Print basic info to standard output.
     void
     print_info(std::ostream& out__) const;
+
+    /// Serialize atom type information to json 
+    nlohmann::json
+    serialize() const;
 
     /// Set the radial grid of the given type.
     inline void
@@ -444,7 +448,7 @@ class Atom_type
 
     /// Add augmented-wave descriptor.
     inline void
-    add_aw_descriptor(int n, int l, double enu, int dme, int auto_enu)
+    add_aw_descriptor(int n, int l, double enu, int dme, int auto_enu) // TODO: move to cpp
     {
         if (static_cast<int>(aw_descriptors_.size()) < (l + 1)) {
             aw_descriptors_.resize(l + 1, radial_solution_descriptor_set());
@@ -473,7 +477,7 @@ class Atom_type
 
     /// Add local orbital descriptor
     inline void
-    add_lo_descriptor(int ilo, int n, int l, double enu, int dme, int auto_enu)
+    add_lo_descriptor(int ilo, int n, int l, double enu, int dme, int auto_enu) // TODO: move to cpp
     {
         if ((int)lo_descriptors_.size() == ilo) {
             angular_momentum am(l);
@@ -521,7 +525,7 @@ class Atom_type
 
     /// Add atomic radial function to the list.
     inline void
-    add_ps_atomic_wf(int n__, angular_momentum am__, std::vector<double> f__, double occ__ = 0.0)
+    add_ps_atomic_wf(int n__, angular_momentum am__, std::vector<double> f__, double occ__ = 0.0) // TODO: move to cpp
     {
         Spline<double> rwf(radial_grid_, f__);
         auto d = std::sqrt(inner(rwf, rwf, 0, radial_grid_.num_points()));
@@ -548,7 +552,10 @@ class Atom_type
     add_beta_radial_function(angular_momentum am__, std::vector<double> beta__)
     {
         if (augment_) {
-            RTE_THROW("can't add more beta projectors");
+            std::stringstream s;
+            s << "augmentation charge has already been added" << std::endl
+              << "this fixes the number of beta projectors to " << this->num_beta_radial_functions() << std::endl
+              << "can't add more beta projectors" << std::endl;
         }
         Spline<double> s(radial_grid_, beta__);
         beta_radial_functions_.push_back(std::make_pair(am__, std::move(s)));
@@ -572,7 +579,7 @@ class Atom_type
     /** Radial functions of beta projectors must be added already. Their total number will be used to
         deterimine the storage size for the radial functions of the augmented charge. */
     inline void
-    add_q_radial_function(int idxrf1__, int idxrf2__, int l__, std::vector<double> qrf__)
+    add_q_radial_function(int idxrf1__, int idxrf2__, int l__, std::vector<double> qrf__) // TODO: move to cpp
     {
         /* sanity check */
         if (l__ > 2 * lmax_beta()) {

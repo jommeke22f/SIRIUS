@@ -643,7 +643,7 @@ Atom_type::read_pseudo_uspp(nlohmann::json const& parser)
 void
 Atom_type::read_pseudo_paw(nlohmann::json const& parser)
 {
-    is_paw_ = true;
+    this->is_paw_ = true;
 
     auto& header = parser["pseudo_potential"]["header"];
     /* read core energy */
@@ -698,7 +698,6 @@ Atom_type::read_pseudo_paw(nlohmann::json const& parser)
 void
 Atom_type::read_input(nlohmann::json const& parser)
 {
-
     if (!parameters_.full_potential()) {
         read_pseudo_uspp(parser);
 
@@ -1254,6 +1253,90 @@ Atom_type::add_hubbard_orbital(int n__, int l__, double occ__, double U, double 
     /* add Hubbard orbital descriptor to a list */
     lo_descriptors_hub_.emplace_back(n__, l__, -1, occ__, J, U, hub_coef__, alpha__, beta__, J0__, initial_occupancy__,
                                      std::move(s.interpolate()), use_for_calculations__, idx_rf);
+}
+
+nlohmann::json
+Atom_type::serialize() const
+{
+    nlohmann::json dict = {
+        {"header", nlohmann::json::object()}
+    };
+
+    dict["header"]["z_valence"] = zn_;
+    dict["header"]["mesh_size"] = this->num_mt_points();
+    if (is_paw()) {
+        dict["header"]["pseudo_type"] = "PAW";
+    } else if (augment()) {
+        dict["header"]["pseudo_type"] = "US";
+    } else {
+        dict["header"]["pseudo_type"] = "NC";
+    }
+    dict["header"]["number_of_proj"] = num_beta_radial_functions();
+    dict["header"]["element"] = symbol_;
+    dict["radial_grid"] = radial_grid().values();
+    dict["local_potential"] = local_potential();
+    dict["core_charge_density"] = ps_core_charge_density();
+    dict["total_charge_density"] = ps_total_charge_density();
+    dict["atomic_wave_functions"] = nlohmann::json::array();
+    for (auto& e: ps_atomic_wfs_) {
+        auto o = nlohmann::json::object();
+        o["angular_momentum"] = e.am.l();
+        o["radial_function"] = e.f.values();
+        dict["atomic_wave_functions"].push_back(o);
+    }
+    dict["beta_projectors"] = nlohmann::json::array();
+    for (auto& e: beta_radial_functions_) {
+        auto o = nlohmann::json::object();
+        o["angular_momentum"] = e.first.l();
+        o["radial_function"] = e.second.values();
+        dict["beta_projectors"].push_back(o);
+    }
+    int nbf = num_beta_radial_functions();
+    std::vector<double> v(nbf * nbf);
+    for (int i = 0; i < nbf; i++) {
+        for (int j = 0; j < nbf; j++) {
+            v[j * nbf + i] = this->d_mtrx_ion()(i, j);
+        }
+    }
+    dict["D_ion"] = v;
+    if (augment_) {
+        dict["augmentation"] = nlohmann::json::array();
+        for (int i = 0; i < nbf; i++) {
+            for (int j = i; j < nbf; j++) {
+                for (int l = 0; l <= 2 * lmax_beta(); l++) {
+                    auto o = nlohmann::json::object();
+                    o["i"] = i;
+                    o["j"] = j;
+                    o["angular_momentum"] = l;
+                    o["radial_function"] = q_radial_function(i, j, l).values();
+                    dict["augmentation"].push_back(o);
+                }
+            }
+        }
+    }
+    if (is_paw()) {
+        auto paw = nlohmann::json::object();
+        paw["ae_core_charge_density"] = paw_ae_core_charge_density();
+        paw["ae_wfc"] = nlohmann::json::array();
+        for (auto& e: ae_paw_wfs_) {
+            auto o = nlohmann::json::object();
+            o["radial_function"] = e;
+            paw["ae_wfc"].push_back(o);
+        }
+        paw["pw_wfc"] = nlohmann::json::array();
+        for (auto& e: ps_paw_wfs_) {
+            auto o = nlohmann::json::object();
+            o["radial_function"] = e;
+            paw["ps_wfc"].push_back(o);
+        }
+        dict["paw_data"] = paw;
+    }
+
+    nlohmann::json result = {
+        {"pseudo_potential", dict}
+    };
+
+    return result;
 }
 
 } // namespace sirius

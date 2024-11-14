@@ -82,16 +82,15 @@ preprocess_json_input(std::string fname__)
 std::unique_ptr<Simulation_context>
 create_sim_ctx(std::string fname__, cmd_args const& args__)
 {
-    std::string json_string;
+    std::string config_string;
     if (isHDF5(fname__)) {
-        HDF5_tree fin(fname__, hdf5_access_t::read_only);
-        fin.read("config", json_string);
+        config_string = fname__;
     } else {
         auto json = preprocess_json_input(fname__);
-        json_string = json.dump();
+        config_string = json.dump();
     }
 
-    auto ctx = std::make_unique<Simulation_context>(json_string, mpi::Communicator::world());
+    auto ctx = std::make_unique<Simulation_context>(config_string);
 
     auto& inp = ctx->cfg().parameters();
     if (inp.gamma_point() && !(inp.ngridk()[0] * inp.ngridk()[1] * inp.ngridk()[2] == 1)) {

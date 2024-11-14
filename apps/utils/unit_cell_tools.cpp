@@ -34,7 +34,7 @@ create_supercell(cmd_args const& args__)
         std::cout << std::endl;
     }
 
-    Simulation_context ctx("sirius.json", mpi::Communicator::self());
+    Simulation_context ctx(std::string("sirius.json"), mpi::Communicator::self());
 
     auto scell_lattice_vectors = dot(ctx.unit_cell().lattice_vectors(), r3::matrix<double>(scell));
 
@@ -113,7 +113,7 @@ create_supercell(cmd_args const& args__)
 void
 find_primitive()
 {
-    Simulation_context ctx("sirius.json", mpi::Communicator::self());
+    Simulation_context ctx(std::string("sirius.json"), mpi::Communicator::self());
 
     double lattice[3][3];
     for (int i : {0, 1, 2}) {
