@@ -917,7 +917,8 @@ add_k_point_contribution_dm_fplapw(Simulation_context const& ctx__, K_point<T> c
  */
 template <typename T>
 static void
-add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> const& kp__)
+add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> const& kp__,
+                                Periodic_function<T>& tau__)
 {
     auto& uc = ctx__.unit_cell();
 
@@ -958,6 +959,7 @@ add_k_point_contribution_tau_mt(Simulation_context const& ctx__, K_point<T> cons
                             auto coef = result.coef;
                             for (int ir = 0; ir < uc.atom(ia).num_mt_points(); ir++) {
                                 //tau[ispn](lm3, ir, ia) += std::real(std::conj(g[x](lm1, ir)) * g[x](lm2, ir) * coef) * w;
+                                tau__.mt()[ia](lm3, ir) += std::real(std::conj(g[x](lm1, ir)) * g[x](lm2, ir) * coef) * w;
                             }
                         }
                     }
@@ -1241,6 +1243,8 @@ Density::generate(K_point_set const& ks__, bool symmetrize__, bool add_core__, b
             for (auto it : unit_cell_.spl_num_atoms()) {
                 for (int ir = 0; ir < unit_cell_.atom(it.i).num_mt_points(); ir++) {
                     rho().mt()[it.i](0, ir) += unit_cell_.atom(it.i).symmetry_class().ae_core_charge_density(ir) / y00;
+                    ///(WIP)TODO: note that only the l=0 element of rho() is populated, probably
+                    ///           important when calculating the Laplacian of the product for tau
                 }
             }
         }
@@ -1254,10 +1258,15 @@ Density::generate(K_point_set const& ks__, bool symmetrize__, bool add_core__, b
 
         if (ctx_.meta_gga()) {
             /// (WIP)TODO: make a test on tau or not. For now, assume spin-restricted
-            std::vector<Smooth_periodic_function<double>*> tau_vec;
-            tau_vec.push_back(&tau_->rg());
+            ///            Might want to combine tau PW and tau MT in a single Field4D, eventually
+            std::vector<Smooth_periodic_function<double>*> tau_vec_pw;
+            tau_vec_pw.push_back(&tau_->rg());
             symmetrize_pw_function(ctx_.unit_cell().symmetry(), ctx_.remap_gvec(), ctx_.sym_phase_factors(),
-                                   ctx_.num_mag_dims(), tau_vec);
+                                   ctx_.num_mag_dims(), tau_vec_pw);
+
+            std::vector<Spheric_function_set<double, atom_index_t>*> tau_vec_mt;
+            tau_vec_mt.push_back(&tau_->mt());
+            symmetrize_mt_function(ctx_.unit_cell(), ctx_.rotm(), ctx_.mpi_grid_mt_sym(), ctx_.num_mag_dims(), tau_vec_mt);
         }
 
         if (ctx_.electronic_structure_method() == electronic_structure_method_t::pseudopotential) {
@@ -1431,8 +1440,8 @@ Density::generate_valence(K_point_set const& ks__)
     }
 
     /// (WIP)TODO: test if tau needed
-    zero(); // necessary, or can use zero() from above?
     if (ctx_.meta_gga()) {
+        tau_->zero();
         tau_coarse_->zero();
     }
 
@@ -1551,7 +1560,7 @@ Density::generate_valence(K_point_set const& ks__)
 
     /* for muffin-tin part */
     if (ctx_.full_potential()) {
-        generate_valence_mt();
+        generate_valence_mt(ks__);
     }
 }
 
@@ -1761,7 +1770,7 @@ Density::reduce_density_matrix(Atom_type const& atom_type__, mdarray<std::comple
 }
 
 void
-Density::generate_valence_mt()
+Density::generate_valence_mt(K_point_set const& ks__)
 {
     PROFILE("sirius::Density::generate_valence_mt");
 
@@ -1909,6 +1918,14 @@ Density::generate_valence_mt()
             case 0: {
                 std::copy(&dlm(0, 0, 0), &dlm(0, 0, 0) + sz, &rho().mt()[it.i](0, 0));
             }
+        }
+    }
+
+    /// (WIP)TODO: generate the mt part of the kinetic energy potential
+    if (ctx_.meta_gga()) {
+        for (auto it : ks__.spl_num_kpoints()) {
+            auto kp = ks__.get<double>(it.i);
+            add_k_point_contribution_tau_mt(ctx_, *kp, tau());
         }
     }
 }

@@ -310,7 +310,7 @@ class Density : public Field4D
 
     /// Generate valence density in the muffin-tins
     void
-    generate_valence_mt();
+    generate_valence_mt(K_point_set const& ks__);
 
     /// Generate charge density of core states
     void
