@@ -98,13 +98,15 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
     }
 
     /// (WIP)TODO: same for tau, prob. not necessary. VASP turns this on with a keyword
-    for (int ir = 0; ir < num_points; ir++) {
+    if (is_tau) {
+        for (int ir = 0; ir < num_points; ir++) {
 
-        // int ir = spl_np[irloc];
-        double t = grad_rho_grad_rho.value(ir) / (8.0 * rho.value(ir));
+            // int ir = spl_np[irloc];
+            double t = grad_rho_grad_rho.value(ir) / (8.0 * rho.value(ir));
 
-        // tau.value(ir) = std::max(density__.tau().value(ir), t);
-        tau.value(ir) = std::max(density__.tau().rg().value(ir), 0.0);
+            // tau.value(ir) = std::max(density__.tau().value(ir), t);
+            tau.value(ir) = std::max(density__.tau().rg().value(ir), 0.0);
+        }
     }
 
     mdarray<double, 1> exc({num_points}, mdarray_label("exc_tmp"));
@@ -217,7 +219,9 @@ Potential::xc_rg_nonmagnetic(Density const& density__, bool use_lapl__)
             }
         }
     } // for loop over xc functionals
-    tau_potential_->rg().fft_transform(-1);
+    if (is_tau) {
+        tau_potential_->rg().fft_transform(-1);
+    }
 
     if (env::print_checksum()) {
         auto cs = xc_potential_->rg().checksum_rg();
@@ -458,7 +462,9 @@ Potential::xc(Density const& density__)
     /* zero all fields */
     xc_potential_->zero();
     xc_energy_density_->zero();
-    tau_potential_->zero();
+    if (ctx_.meta_gga()) {
+        tau_potential_->zero();
+    }
     for (int i = 0; i < ctx_.num_mag_dims(); i++) {
         effective_magnetic_field(i).zero();
     }
@@ -485,7 +491,9 @@ Potential::xc(Density const& density__)
         }
         remove_high_pw(ctx_, xc_potential_->rg());
         remove_high_pw(ctx_, xc_energy_density_->rg());
-        remove_high_pw(ctx_, tau_potential_->rg());
+        if (ctx_.meta_gga()) {
+            remove_high_pw(ctx_, tau_potential_->rg());
+        }
     }
 
     if (env::print_hash()) {

@@ -37,12 +37,16 @@ Local_operator<T>::Local_operator(Simulation_context const& ctx__, fft::spfft_tr
             veff_vec_[j]->value(ir) = 2.71828;
         }
     }
-    /// (WIP)TODO: sjould probably check if tau is required
-    veff_vec_[6] = std::make_unique<Smooth_periodic_function<T>>(fft_coarse__, gvec_coarse_p__);
-    #pragma omp parallel for schedule(static)
-    for (int ir = 0; ir < fft_coarse__.local_slice_size(); ir++) {
-        veff_vec_[6]->value(ir) = 0.0;
+
+    if (ctx_.meta_gga()) {
+        /// (WIP)TODO: should probably check if tau is required
+        veff_vec_[6] = std::make_unique<Smooth_periodic_function<T>>(fft_coarse__, gvec_coarse_p__);
+        #pragma omp parallel for schedule(static)
+        for (int ir = 0; ir < fft_coarse__.local_slice_size(); ir++) {
+            veff_vec_[6]->value(ir) = 0.0;
+        }
     }
+
     /* map Theta(r) to the coarse mesh */
     if (ctx_.full_potential()) {
         auto& gvec_dense_p = ctx_.gvec_fft();
@@ -128,15 +132,17 @@ Local_operator<T>::Local_operator(Simulation_context const& ctx__, fft::spfft_tr
             }
 
             /// (WIP)TODO: map Vtau to coarse grid
-            #pragma omp parallel for schedule(static)
-            for (int igloc = 0; igloc < gvec_coarse_p_->gvec().count(); igloc++) {
-                /* map from fine to coarse set of G-vectors */
-                veff_vec_[6]->f_pw_local(igloc) =
-                        0.5 * potential__->tau_potential().rg().f_pw_local(
-                                      potential__->tau_potential().rg().gvec().gvec_base_mapping(igloc));
+            if (ctx_.meta_gga()) {
+                #pragma omp parallel for schedule(static)
+                for (int igloc = 0; igloc < gvec_coarse_p_->gvec().count(); igloc++) {
+                    /* map from fine to coarse set of G-vectors */
+                    veff_vec_[6]->f_pw_local(igloc) =
+                            0.5 * potential__->tau_potential().rg().f_pw_local(
+                                            potential__->tau_potential().rg().gvec().gvec_base_mapping(igloc));
+                }
+                /* transform to real space */
+                veff_vec_[6]->fft_transform(1);
             }
-            /* transform to real space */
-            veff_vec_[6]->fft_transform(1);
 
             /* change to canonical form */
             if (ctx_.num_mag_dims()) {
@@ -195,9 +201,11 @@ Local_operator<T>::prepare_k(fft::Gvec_fft const& gkvec_p__)
     vphi_ = mdarray<std::complex<T>, 1>({ngv_fft}, get_memory_pool(memory_t::host),
                                         mdarray_label("Local_operator::vphi"));
 
-    /// (WIP)TODO: PW buffer for meta-GGA (assume CPU only)
-    buf_pw_ = mdarray<std::complex<T>, 1>({ngv_fft}, get_memory_pool(memory_t::host),
-                                          mdarray_label("Local_operator::vphi"));
+    if (ctx_.meta_gga()) {
+        /// (WIP)TODO: PW buffer for meta-GGA (assume CPU only)
+        buf_pw_ = mdarray<std::complex<T>, 1>({ngv_fft}, get_memory_pool(memory_t::host),
+                                              mdarray_label("Local_operator::vphi"));
+    }
 
     #pragma omp parallel for schedule(static)
     for (int ig_loc = 0; ig_loc < ngv_fft; ig_loc++) {
@@ -505,12 +513,14 @@ Local_operator<T>::apply_h(fft::spfft_transform_type<T>& spfftk__, std::shared_p
             ///            FFT to real space to take product with V_tau, and then FFT back to
             ///            G space for the divergence
 
-            for (int x : {0, 1, 2}) {
-                gradphi_to_r(spins__.begin(), wf::band_index(i), x);
-                mul_by_veff<T>(spfftk__, spfft_buf, veff_vec_, 6, spfft_buf);
-                vphi_to_G();
-                div_vphi_G(x);
-                add_to_hphi(spins__.begin().get(), wf::band_index(i), 0);
+            if (ctx_.meta_gga()) {
+                for (int x : {0, 1, 2}) {
+                    gradphi_to_r(spins__.begin(), wf::band_index(i), x);
+                    mul_by_veff<T>(spfftk__, spfft_buf, veff_vec_, 6, spfft_buf);
+                    vphi_to_G();
+                    div_vphi_G(x);
+                    add_to_hphi(spins__.begin().get(), wf::band_index(i), 0);
+                }
             }
 
             /* Will probably look something like this:

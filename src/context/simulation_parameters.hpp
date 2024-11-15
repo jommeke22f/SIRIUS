@@ -480,6 +480,18 @@ class Simulation_parameters
         return cfg().parameters().xc_functionals();
     }
 
+    bool
+    meta_gga() const
+    {
+        bool meta = false;
+        for (auto& xc_label : xc_functionals()){
+            if (xc_label.find("MGGA") != std::string::npos){
+                meta = true;
+            }
+        }
+        return meta;
+    }
+
     /// Get the name of the standard eigen-value solver to use.
     std::string
     std_evp_solver_name() const

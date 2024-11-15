@@ -86,13 +86,15 @@ Density::Density(Simulation_context& ctx__)
         rho_mag_coarse_[i] = std::make_unique<spf>(ctx_.spfft_coarse<double>(), ctx_.gvec_coarse_fft_sptr());
     }
 
-    if (ctx_.full_potential()) {
-        tau_ = std::make_unique<pf>(
-                ctx_, [&](int ia) { return lmax_t(ctx_.lmax_pot()); }, &ctx_.unit_cell().spl_num_atoms());
-    } else {
-        tau_ = std::make_unique<pf>(ctx_);
+    if (ctx_.meta_gga()) {
+        if (ctx_.full_potential()) {
+            tau_ = std::make_unique<pf>(
+                    ctx_, [&](int ia) { return lmax_t(ctx_.lmax_pot()); }, &ctx_.unit_cell().spl_num_atoms());
+        } else {
+            tau_ = std::make_unique<pf>(ctx_);
+        }
+        tau_coarse_ = std::make_unique<spf>(ctx_.spfft_coarse<double>(), ctx_.gvec_coarse_fft_sptr());
     }
-    tau_coarse_ = std::make_unique<spf>(ctx_.spfft_coarse<double>(), ctx_.gvec_coarse_fft_sptr());
 
     /* core density of the pseudopotential method */
     if (!ctx_.full_potential()) {
@@ -760,16 +762,18 @@ Density::add_k_point_contribution_rg(K_point<T>* kp__, std::array<wf::Wave_funct
                 ///       will also need to copy back from GPU after that
                 ///  Note: it seems that tau is correct
                 ///  Can probably use to_gradient() here (see xc.cpp)
-                for (int x : {0, 1, 2}) {
-                    #pragma omp parallel for
-                    for (int igloc = 0; igloc < kp__->gkvec_fft_sptr()->count(); igloc++) {
-                        auto gvc = kp__->gkvec_fft_sptr()->gkvec_cart(igloc);
-                        /* grad P phi = phi(G+k) * (G+k) */
-                        buf_pw[igloc] = wf_fft__[ispn].pw_coeffs(igloc, wf::band_index(i)) * static_cast<T>(gvc[x]);
+                if (ctx_.meta_gga()) {
+                    for (int x : {0, 1, 2}) {
+                        #pragma omp parallel for
+                        for (int igloc = 0; igloc < kp__->gkvec_fft_sptr()->count(); igloc++) {
+                            auto gvc = kp__->gkvec_fft_sptr()->gkvec_cart(igloc);
+                            /* grad P phi = phi(G+k) * (G+k) */
+                            buf_pw[igloc] = wf_fft__[ispn].pw_coeffs(igloc, wf::band_index(i)) * static_cast<T>(gvc[x]);
+                        }
+                        add_k_point_contribution_rg_collinear(kp__->spfft_transform(), ispn, w,
+                                                              reinterpret_cast<T const*>(buf_pw.at(wf_mem)), nr,
+                                                              ctx_.gamma_point(), tau_rg);
                     }
-                    add_k_point_contribution_rg_collinear(kp__->spfft_transform(), ispn, w,
-                                                          reinterpret_cast<T const*>(buf_pw.at(wf_mem)), nr,
-                                                          ctx_.gamma_point(), tau_rg);
                 }
             }
         } // ispn
@@ -824,12 +828,17 @@ Density::add_k_point_contribution_rg(K_point<T>* kp__, std::array<wf::Wave_funct
             #pragma omp parallel for
             for (int ir = 0; ir < nr; ir++) {
                 rho_mag_coarse_[0]->value(ir) += density_rg(ir, 0); // rho
+            }
 
-                ///(WIP)TODO: add the 0.5 factor for kinetic density
-                // TODO: check if tau is correct in the first place:
-                //       - if replace G by 1, should get back the normal density
-                //       - should be able to compare to DFTK, if rho is also the same
-                tau_coarse_->value(ir) += 0.5 * tau_rg(ir, 0);
+            if (ctx_.meta_gga()) {
+                #pragma omp parallel for
+                for (int ir = 0; ir < nr; ir++) {
+                    ///(WIP)TODO: add the 0.5 factor for kinetic density
+                    // TODO: check if tau is correct in the first place:
+                    //       - if replace G by 1, should get back the normal density
+                    //       - should be able to compare to DFTK, if rho is also the same
+                    tau_coarse_->value(ir) += 0.5 * tau_rg(ir, 0);
+                }
             }
         }
     }
@@ -1242,11 +1251,14 @@ Density::generate(K_point_set const& ks__, bool symmetrize__, bool add_core__, b
     }
     if (symmetrize__) {
         symmetrize_field4d(*this);
-        /// (WIP)TODO: make a test on tau or not. For now, assume spin-restricted
-        std::vector<Smooth_periodic_function<double>*> tau_vec;
-        tau_vec.push_back(&tau_->rg());
-        symmetrize_pw_function(ctx_.unit_cell().symmetry(), ctx_.remap_gvec(), ctx_.sym_phase_factors(),
-                               ctx_.num_mag_dims(), tau_vec);
+
+        if (ctx_.meta_gga()) {
+            /// (WIP)TODO: make a test on tau or not. For now, assume spin-restricted
+            std::vector<Smooth_periodic_function<double>*> tau_vec;
+            tau_vec.push_back(&tau_->rg());
+            symmetrize_pw_function(ctx_.unit_cell().symmetry(), ctx_.remap_gvec(), ctx_.sym_phase_factors(),
+                                   ctx_.num_mag_dims(), tau_vec);
+        }
 
         if (ctx_.electronic_structure_method() == electronic_structure_method_t::pseudopotential) {
             std::unique_ptr<density_matrix_t> dm_ref;
@@ -1338,7 +1350,9 @@ Density::generate(K_point_set const& ks__, bool symmetrize__, bool add_core__, b
     if (transform_to_rg__) {
         this->fft_transform(1);
         /// (WIP)TODO: test on tau
-        tau_->rg().fft_transform(1);
+        if (ctx_.meta_gga()) {
+            tau_->rg().fft_transform(1);
+        }
     }
 }
 
@@ -1418,7 +1432,9 @@ Density::generate_valence(K_point_set const& ks__)
 
     /// (WIP)TODO: test if tau needed
     zero(); // necessary, or can use zero() from above?
-    tau_coarse_->zero();
+    if (ctx_.meta_gga()) {
+        tau_coarse_->zero();
+    }
 
     auto mem = ctx_.processing_unit() == device_t::CPU ? memory_t::host : memory_t::device;
 
@@ -1487,22 +1503,25 @@ Density::generate_valence(K_point_set const& ks__)
             component(j).rg().f_pw_local(ctx_.gvec().gvec_base_mapping(igloc)) = rho_mag_coarse_[j]->f_pw_local(igloc);
         }
     }
-    /// (WIP)TODO: same reduction of the tau density + put on finer PW grid
-    auto ptr = (ctx_.spfft_coarse<double>().local_slice_size() == 0) ? nullptr : &tau_coarse_->value(0);
-    /* reduce arrays; assume that each rank did its own fraction of the density */
-    /* comm_ortho_fft is identical to a product of column communicator inside k-point with k-point communicator */
-    comm.allreduce(ptr, ctx_.spfft_coarse<double>().local_slice_size());
-    /* print checksum if needed */
-    if (env::print_checksum()) {
-        auto cs = mdarray<double, 1>({ctx_.spfft_coarse<double>().local_slice_size()}, ptr).checksum();
-        mpi::Communicator(ctx_.spfft_coarse<double>().communicator()).allreduce(&cs, 1);
-        print_checksum("tau_coarse_rg", cs, ctx_.out());
-    }
-    /* transform to PW domain */
-    tau_coarse_->fft_transform(-1);
-    /* map to fine G-vector grid */
-    for (int igloc = 0; igloc < ctx_.gvec_coarse().count(); igloc++) {
-        tau_->rg().f_pw_local(ctx_.gvec().gvec_base_mapping(igloc)) = tau_coarse_->f_pw_local(igloc);
+
+    if (ctx_.meta_gga()) {
+        /// (WIP)TODO: same reduction of the tau density + put on finer PW grid
+        auto ptr = (ctx_.spfft_coarse<double>().local_slice_size() == 0) ? nullptr : &tau_coarse_->value(0);
+        /* reduce arrays; assume that each rank did its own fraction of the density */
+        /* comm_ortho_fft is identical to a product of column communicator inside k-point with k-point communicator */
+        comm.allreduce(ptr, ctx_.spfft_coarse<double>().local_slice_size());
+        /* print checksum if needed */
+        if (env::print_checksum()) {
+            auto cs = mdarray<double, 1>({ctx_.spfft_coarse<double>().local_slice_size()}, ptr).checksum();
+            mpi::Communicator(ctx_.spfft_coarse<double>().communicator()).allreduce(&cs, 1);
+            print_checksum("tau_coarse_rg", cs, ctx_.out());
+        }
+        /* transform to PW domain */
+        tau_coarse_->fft_transform(-1);
+        /* map to fine G-vector grid */
+        for (int igloc = 0; igloc < ctx_.gvec_coarse().count(); igloc++) {
+            tau_->rg().f_pw_local(ctx_.gvec().gvec_base_mapping(igloc)) = tau_coarse_->f_pw_local(igloc);
+        }
     }
 
     if (!ctx_.full_potential()) {
