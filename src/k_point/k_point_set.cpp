@@ -582,9 +582,12 @@ K_point_set::save(std::string const& name__) const
         if (!file_exists(name__)) {
             HDF5_tree(name__, hdf5_access_t::truncate);
         }
-        HDF5_tree fout(name__, hdf5_access_t::read_write);
+        HDF5_tree fout(name__, hdf5_access_t::truncate);
         fout.create_node("K_point_set");
         fout["K_point_set"].write("num_kpoints", num_kpoints());
+        fout["K_point_set"].write("num_bands", ctx_.num_bands());
+        fout["K_point_set"].write("num_spins", ctx_.num_spins());
+
     }
     ctx_.comm().barrier();
     for (int ik = 0; ik < num_kpoints(); ik++) {
@@ -601,37 +604,39 @@ K_point_set::save(std::string const& name__) const
 void
 K_point_set::load()
 {
-    RTE_THROW("not implemented");
+    HDF5_tree fin(storage_file_name, hdf5_access_t::read_only);
 
-    //== HDF5_tree fin(storage_file_name, false);
+    int num_kpoints_in, num_bands_in, num_spins_in;
+    fin["K_point_set"].read("num_kpoints", &num_kpoints_in, 1);
+    fin["K_point_set"].read("num_bands", &num_bands_in, 1);
+    fin["K_point_set"].read("num_spins", &num_spins_in, 1);
 
-    //== int num_kpoints_in;
-    //== fin["K_point_set"].read("num_kpoints", &num_kpoints_in);
-
-    //== std::vector<int> ikidx(num_kpoints(), -1);
+    std::vector<int> ikidx(num_kpoints(), -1);
     //== // read available k-points
-    //== double vk_in[3];
-    //== for (int jk = 0; jk < num_kpoints_in; jk++)
-    //== {
-    //==     fin["K_point_set"][jk].read("coordinates", vk_in, 3);
-    //==     for (int ik = 0; ik < num_kpoints(); ik++)
-    //==     {
-    //==         r3::vector<double> dvk;
-    //==         for (int x = 0; x < 3; x++) dvk[x] = vk_in[x] - kpoints_[ik]->vk(x);
-    //==         if (dvk.length() < 1e-12)
-    //==         {
-    //==             ikidx[ik] = jk;
-    //==             break;
-    //==         }
-    //==     }
-    //== }
+    double vk_in[3];
+    for (int jk = 0; jk < num_kpoints_in; jk++)
+    {
+        fin["K_point_set"][jk].read("vk", vk_in, 3);
+        for (int ik = 0; ik < num_kpoints(); ik++)
+        {
+            r3::vector<double> dvk;
+            for ( auto& ix :{0,1,2} ) {
+                dvk[ix] = vk_in[ix] - kpoints_[ik]->vk()[ix];
+            }
+            if (dvk.length() < 1e-12)
+            {
+                ikidx[ik] = jk;
+                break;
+            }
+        }
+    }
 
-    //== for (int ik = 0; ik < num_kpoints(); ik++)
-    //== {
-    //==     int rank = spl_num_kpoints_.local_rank(ik);
-    //==
-    //==     if (comm_.rank() == rank) kpoints_[ik]->load(fin["K_point_set"], ikidx[ik]);
-    //== }
+    for (int ik = 0; ik < num_kpoints(); ik++)
+    {
+        int rank = spl_num_kpoints_.location(typename kp_index_t::global(ik)).ib;
+    
+        if (comm().rank() == rank) kpoints_[ik]->load(fin["K_point_set"], ikidx[ik]);
+    }
 }
 
 //== void K_point_set::save_wave_functions()

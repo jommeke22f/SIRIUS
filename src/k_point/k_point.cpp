@@ -563,43 +563,57 @@ K_point<T>::save(std::string const& name__, int id__) const
     }
     /* wait for rank 0 */
     comm().barrier();
-    // int gkvec_count  = gkvec().count();
-    // int gkvec_offset = gkvec().offset();
-    // std::vector<std::complex<T>> wf_tmp(num_gkvec());
+    int gkvec_count  = gkvec().count();
+    int gkvec_offset = gkvec().offset();
+    std::vector<std::complex<T>> wf_tmp(num_gkvec());
 
-    // std::unique_ptr<sddk::HDF5_tree> fout;
+    std::unique_ptr<HDF5_tree> fout;
     /* rank 0 opens a file */
-    // if (comm().rank() == 0) {
-    //     fout = std::make_unique<sddk::HDF5_tree>(name__, sddk::hdf5_access_t::read_write);
-    // }
+    if (comm().rank() == 0) {
+        fout = std::make_unique<HDF5_tree>(name__, hdf5_access_t::read_write);
+    }
 
-    RTE_THROW("re-implement");
-
-    ///* store wave-functions */
-    // for (int i = 0; i < ctx_.num_bands(); i++) {
-    //     for (int ispn = 0; ispn < ctx_.num_spins(); ispn++) {
-    //         /* gather full column of PW coefficients on rank 0 */
-    //         comm().gather(&spinor_wave_functions_->pw_coeffs(ispn).prime(0, i), wf_tmp.data(), gkvec_offset,
-    //                       gkvec_count, 0);
-    //         if (comm().rank() == 0) {
-    //             (*fout)["K_point_set"][id__]["bands"][i]["spinor_wave_function"][ispn].write("pw", wf_tmp);
-    //         }
-    //     }
-    //     comm().barrier();
-    // }
+    /* store wave-functions */
+    for (int i = 0; i < ctx_.num_bands(); i++) {
+        for (int ispn = 0; ispn < ctx_.num_spins(); ispn++) {
+            /* gather full column of PW coefficients on rank 0 */
+            comm().gather(&spinor_wave_functions_->pw_coeffs(0, sirius::wf::spin_index(ispn), sirius::wf::band_index(i)), 
+                          wf_tmp.data(), gkvec_offset,
+                          gkvec_count, 0);
+            if (comm().rank() == 0) {
+                (*fout)["K_point_set"][id__]["bands"][i]["spinor_wave_function"][ispn].write("pw", 
+                reinterpret_cast<T*>(wf_tmp.data()), static_cast<int>(wf_tmp.size() * 2));
+            }
+        }
+        comm().barrier();
+    }
 }
 
 template <typename T>
 void
-K_point<T>::load(HDF5_tree h5in, int id)
+K_point<T>::load(HDF5_tree h5in, int id__)
 {
-    RTE_THROW("not implemented");
-    //== band_energies_.resize(ctx_.num_bands());
-    //== h5in[id].read("band_energies", band_energies_);
 
-    //== band_occupancies_.resize(ctx_.num_bands());
-    //== h5in[id].read("band_occupancies", band_occupancies_);
-    //==
+    h5in[id__].read("band_energies", band_energies_);
+    h5in[id__].read("band_occupancies", band_occupancies_);
+    
+    /* read ordered G vectors on mdarray */
+    mdarray<int, 2> gv({3, num_gkvec()});
+    h5in[id__].read("gvec", gv);
+
+    /* fill G vectors with read array */
+    
+    /* read pw coefficients */
+    std::vector<std::complex<T>> wf_tmp(num_gkvec());
+
+    for (int ibnd = 0; ibnd < ctx_.num_bands(); ibnd++) {
+        for (int ispn = 0; ispn < ctx_.num_spins(); ispn++) {
+            h5in["K_point_set"][id__]["bands"][ibnd]["spinor_wave_function"][ispn].read("pw", 
+                reinterpret_cast<T*>(wf_tmp.data()), static_cast<int>(wf_tmp.size() * 2));
+        }
+    }
+
+
     //== h5in[id].read_mdarray("fv_eigen_vectors", fv_eigen_vectors_panel_);
     //== h5in[id].read_mdarray("sv_eigen_vectors", sv_eigen_vectors_);
 }
