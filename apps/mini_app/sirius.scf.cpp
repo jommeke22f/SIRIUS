@@ -241,6 +241,10 @@ ground_state(Simulation_context& ctx, int task_id, cmd_args const& args, int wri
     }
 
     if (write_state && write_output) {
+        std::cout << "Saving wf.." << std::endl;
+        kset.save("wf.h5");
+        std::cout << " wf saved.." << std::endl;
+
         json dict;
         json_output_common(dict);
 

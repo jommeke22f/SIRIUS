@@ -608,7 +608,7 @@ K_point<T>::load(HDF5_tree h5in, int id__)
 
     for (int ibnd = 0; ibnd < ctx_.num_bands(); ibnd++) {
         for (int ispn = 0; ispn < ctx_.num_spins(); ispn++) {
-            h5in["K_point_set"][id__]["bands"][ibnd]["spinor_wave_function"][ispn].read("pw", 
+            h5in[id__]["bands"][ibnd]["spinor_wave_function"][ispn].read("pw", 
                 reinterpret_cast<T*>(wf_tmp.data()), static_cast<int>(wf_tmp.size() * 2));
         }
     }

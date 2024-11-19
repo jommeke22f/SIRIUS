@@ -602,34 +602,37 @@ K_point_set::save(std::string const& name__) const
 
 /// \todo check parameters of saved data in a separate function
 void
-K_point_set::load()
+K_point_set::load(std::string const& name__) 
 {
-    HDF5_tree fin(storage_file_name, hdf5_access_t::read_only);
+    HDF5_tree fin(name__, hdf5_access_t::read_only);
 
     int num_kpoints_in, num_bands_in, num_spins_in;
     fin["K_point_set"].read("num_kpoints", &num_kpoints_in, 1);
     fin["K_point_set"].read("num_bands", &num_bands_in, 1);
     fin["K_point_set"].read("num_spins", &num_spins_in, 1);
 
+    /* find index of kpoints in the hdf5 */
     std::vector<int> ikidx(num_kpoints(), -1);
-    //== // read available k-points
     double vk_in[3];
+    std::cout << "num_kpoints: " << num_kpoints() << std::endl;
     for (int jk = 0; jk < num_kpoints_in; jk++)
     {
         fin["K_point_set"][jk].read("vk", vk_in, 3);
+        std::cout << vk_in[0] << " " << vk_in[1] << " " << vk_in[2] << std::endl;
+        
+        r3::vector vk_jk(&vk_in[0]);
+
         for (int ik = 0; ik < num_kpoints(); ik++)
         {
-            r3::vector<double> dvk;
-            for ( auto& ix :{0,1,2} ) {
-                dvk[ix] = vk_in[ix] - kpoints_[ik]->vk()[ix];
-            }
-            if (dvk.length() < 1e-12)
+            if ( ( vk_jk - kpoints_[ik]->vk() ).length() < 1e-12)
             {
                 ikidx[ik] = jk;
                 break;
             }
         }
     }
+
+    RTE_ASSERT(std::find_if( ikidx.begin(), ikidx.end(), [&](const int& ik_){ return ik_ != -1; }) != ikidx.end() );
 
     for (int ik = 0; ik < num_kpoints(); ik++)
     {
