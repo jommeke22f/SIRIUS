@@ -301,8 +301,6 @@ PYBIND11_MODULE(py_sirius, m)
             .def(py::init<Simulation_context&>(), py::keep_alive<1, 2>(), "ctx"_a)
             .def("generate", &Potential::generate, "density"_a, "use_sym"_a, "transform_to_rg"_a)
             .def("fft_transform", &Potential::fft_transform)
-            .def("save", &Potential::save)
-            .def("load", &Potential::load)
             .def_property("vxc", py::overload_cast<>(&Potential::xc_potential),
                           py::overload_cast<>(&Potential::xc_potential), py::return_value_policy::reference_internal)
             .def_property("exc", py::overload_cast<>(&Potential::xc_energy_density),
