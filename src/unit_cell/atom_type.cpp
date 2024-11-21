@@ -1348,4 +1348,144 @@ Atom_type::serialize() const
     return result;
 }
 
+void
+Atom_type::init_aw_descriptors()
+{
+    RTE_ASSERT(this->lmax_apw() >= -1);
+
+    if (this->lmax_apw() >= 0 && aw_default_l_.size() == 0) {
+        RTE_THROW("default AW descriptor is empty");
+    }
+
+    aw_descriptors_.clear();
+    for (int l = 0; l <= this->lmax_apw(); l++) {
+        aw_descriptors_.push_back(aw_default_l_);
+        for (size_t ord = 0; ord < aw_descriptors_[l].size(); ord++) {
+            aw_descriptors_[l][ord].n = l + 1;
+            aw_descriptors_[l][ord].l = l;
+        }
+    }
+
+    for (size_t i = 0; i < aw_specific_l_.size(); i++) {
+        int l = aw_specific_l_[i][0].l;
+        if (l < this->lmax_apw()) {
+            aw_descriptors_[l] = aw_specific_l_[i];
+        }
+    }
+}
+
+void
+Atom_type::add_aw_descriptor(int n, int l, double enu, int dme, int auto_enu)
+{
+    if (static_cast<int>(aw_descriptors_.size()) < (l + 1)) {
+        aw_descriptors_.resize(l + 1, radial_solution_descriptor_set());
+    }
+
+    radial_solution_descriptor rsd;
+
+    rsd.n = n;
+    if (n == -1) {
+        /* default principal quantum number value for any l */
+        rsd.n = l + 1;
+        for (int ist = 0; ist < num_atomic_levels(); ist++) {
+            /* take next level after the core */
+            if (atomic_level(ist).core && atomic_level(ist).l == l) {
+                rsd.n = atomic_level(ist).n + 1;
+            }
+        }
+    }
+
+    rsd.l        = l;
+    rsd.dme      = dme;
+    rsd.enu      = enu;
+    rsd.auto_enu = auto_enu;
+    aw_descriptors_[l].push_back(rsd);
+}
+
+void
+Atom_type::add_lo_descriptor(int ilo, int n, int l, double enu, int dme, int auto_enu)
+{
+    if ((int)lo_descriptors_.size() == ilo) {
+        angular_momentum am(l);
+        lo_descriptors_.push_back(local_orbital_descriptor(am));
+    } else {
+        if (l != lo_descriptors_[ilo].am.l()) {
+            std::stringstream s;
+            s << "wrong angular quantum number" << std::endl
+              << "atom type id: " << id() << " (" << symbol_ << ")" << std::endl
+              << "idxlo: " << ilo << std::endl
+              << "n: " << l << std::endl
+              << "l: " << n << std::endl
+              << "expected l: " << lo_descriptors_[ilo].am.l() << std::endl;
+            RTE_THROW(s);
+        }
+    }
+
+    radial_solution_descriptor rsd;
+
+    rsd.n = n;
+    if (n == -1) {
+        /* default value for any l */
+        rsd.n = l + 1;
+        for (int ist = 0; ist < num_atomic_levels(); ist++) {
+            if (atomic_level(ist).core && atomic_level(ist).l == l) {
+                /* take next level after the core */
+                rsd.n = atomic_level(ist).n + 1;
+            }
+        }
+    }
+
+    rsd.l        = l;
+    rsd.dme      = dme;
+    rsd.enu      = enu;
+    rsd.auto_enu = auto_enu;
+    lo_descriptors_[ilo].rsd_set.push_back(rsd);
+}
+
+void
+Atom_type::add_ps_atomic_wf(int n__, angular_momentum am__, std::vector<double> f__, double occ__ = 0.0)
+{
+    Spline<double> rwf(radial_grid_, f__);
+    auto d = std::sqrt(inner(rwf, rwf, 0, radial_grid_.num_points()));
+    if (d < 1e-4) {
+        std::stringstream s;
+        s << "small norm (" << d << ") of radial atomic pseudo wave-function for n=" << n__
+          << " and j=" << am__.j();
+        RTE_THROW(s);
+    }
+
+    ps_atomic_wfs_.emplace_back(n__, am__, occ__, std::move(rwf));
+}
+
+void
+Atom_type::add_q_radial_function(int idxrf1__, int idxrf2__, int l__, std::vector<double> qrf__)
+{
+    /* sanity check */
+    if (l__ > 2 * lmax_beta()) {
+        std::stringstream s;
+        s << "wrong l for Q radial functions of atom type " << label_ << std::endl
+          << "current l: " << l__ << std::endl
+          << "lmax_beta: " << lmax_beta() << std::endl
+          << "maximum allowed l: " << 2 * lmax_beta();
+
+        RTE_THROW(s);
+    }
+
+    if (!augment_) {
+        /* once we add a Q-radial function, we need to augment the charge */
+        augment_ = true;
+        /* number of radial beta-functions */
+        int nbrf              = num_beta_radial_functions();
+        q_radial_functions_l_ = mdarray<Spline<double>, 2>({nbrf * (nbrf + 1) / 2, 2 * lmax_beta() + 1});
+
+        for (int l = 0; l <= 2 * lmax_beta(); l++) {
+            for (int idx = 0; idx < nbrf * (nbrf + 1) / 2; idx++) {
+                q_radial_functions_l_(idx, l) = Spline<double>(radial_grid_);
+            }
+        }
+    }
+
+    q_radial_functions_l_(packed_index(idxrf1__, idxrf2__), l__) = Spline<double>(radial_grid_, qrf__);
+}
+
 } // namespace sirius
