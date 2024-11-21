@@ -379,7 +379,8 @@ Unit_cell::serialize(bool cart_pos__) const
             if (cart_pos__) {
                 v = dot(lattice_vectors_, v);
             }
-            dict["atoms"][atom_type(iat).label()].push_back({v[0], v[1], v[2]});
+            auto f = atom(ia).vector_field();
+            dict["atoms"][atom_type(iat).label()].push_back({v[0], v[1], v[2], f[0], f[1], f[2]});
         }
     }
     return dict;

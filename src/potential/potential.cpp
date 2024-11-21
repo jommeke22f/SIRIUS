@@ -296,7 +296,7 @@ Potential::generate(Density const& density__, bool use_symmetry__, bool transfor
          *  1) compute D-matrix
          *  2) establish a mapping between fine and coarse FFT grid for the Hloc operator
          *  3) symmetrize effective potential */
-        fft_transform(-1);
+        this->fft_transform(-1);
     }
 
     if (use_symmetry__) {

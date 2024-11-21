@@ -621,6 +621,9 @@ Atom_type::read_pseudo_uspp(nlohmann::json const& parser)
                 std::istringstream iss(std::string(1, c1[0]));
                 iss >> n;
             }
+            if (dict[k].count("principal_quantum_number")) {
+                n = dict[k]["principal_quantum_number"].get<int>();
+            }
 
             if (spin_orbit_coupling() && dict[k].count("total_angular_momentum") && l != 0) {
 
@@ -654,7 +657,7 @@ Atom_type::read_pseudo_paw(nlohmann::json const& parser)
     }
 
     /* cutoff index */
-    int cutoff_radius_index = parser["pseudo_potential"]["header"]["cutoff_radius_index"].get<int>();
+    int cutoff_radius_index = parser["pseudo_potential"]["header"].value("cutoff_radius_index", -1);
 
     /* read core density and potential */
     paw_ae_core_charge_density(
@@ -679,7 +682,9 @@ Atom_type::read_pseudo_paw(nlohmann::json const& parser)
             RTE_THROW(s);
         }
 
-        add_ae_paw_wf(std::vector<double>(wfc.begin(), wfc.begin() + cutoff_radius_index));
+        int last = (cutoff_radius_index == -1) ? wfc.size() : cutoff_radius_index;
+
+        add_ae_paw_wf({wfc.begin(), wfc.begin() + last});
 
         wfc = parser["pseudo_potential"]["paw_data"]["ps_wfc"][i]["radial_function"].get<std::vector<double>>();
 
@@ -691,7 +696,9 @@ Atom_type::read_pseudo_paw(nlohmann::json const& parser)
             RTE_THROW(s);
         }
 
-        add_ps_paw_wf(std::vector<double>(wfc.begin(), wfc.begin() + cutoff_radius_index));
+        last = (cutoff_radius_index == -1) ? wfc.size() : cutoff_radius_index;
+
+        add_ps_paw_wf({wfc.begin(), wfc.begin() + last});
     }
 }
 
@@ -1282,6 +1289,7 @@ Atom_type::serialize() const
         auto o = nlohmann::json::object();
         o["angular_momentum"] = e.am.l();
         o["radial_function"] = e.f.values();
+        o["principal_quantum_number"] = e.n;
         dict["atomic_wave_functions"].push_back(o);
     }
     dict["beta_projectors"] = nlohmann::json::array();
@@ -1329,6 +1337,7 @@ Atom_type::serialize() const
             o["radial_function"] = e;
             paw["ps_wfc"].push_back(o);
         }
+        paw["occupations"] = paw_wf_occ_;
         dict["paw_data"] = paw;
     }
 
