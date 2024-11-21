@@ -1439,7 +1439,7 @@ Atom_type::add_lo_descriptor(int ilo, int n, int l, double enu, int dme, int aut
 }
 
 void
-Atom_type::add_ps_atomic_wf(int n__, angular_momentum am__, std::vector<double> f__, double occ__ = 0.0)
+Atom_type::add_ps_atomic_wf(int n__, angular_momentum am__, std::vector<double> f__, double occ__)
 {
     Spline<double> rwf(radial_grid_, f__);
     auto d = std::sqrt(inner(rwf, rwf, 0, radial_grid_.num_points()));
