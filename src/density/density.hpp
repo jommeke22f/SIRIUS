@@ -600,47 +600,10 @@ class Density : public Field4D
     }
 
     void
-    save(std::string name__) const
-    {
-        rho().hdf5_write(name__, "density");
-        for (int j = 0; j < ctx_.num_mag_dims(); j++) {
-            std::stringstream s;
-            s << "magnetization/" << j;
-            mag(j).hdf5_write(name__, s.str());
-        }
-        ctx_.comm().barrier();
-        if (ctx_.comm().rank() == 0) {
-            HDF5_tree fout(name__, hdf5_access_t::read_write);
-            for (int ia = 0; ia < unit_cell_.num_atoms(); ia++) {
-                fout["density_matrix"][ia].write("data", this->density_matrix(ia));
-            }
-        }
-    }
+    save(std::string name__) const;
 
     void
-    load(std::string name__)
-    {
-        HDF5_tree fin(name__, hdf5_access_t::read_only);
-
-        int ngv;
-        fin.read("/parameters/num_gvec", &ngv, 1);
-        if (ngv != ctx_.gvec().num_gvec()) {
-            RTE_THROW("wrong number of G-vectors");
-        }
-        mdarray<int, 2> gv({3, ngv});
-        fin.read("/parameters/gvec", gv);
-
-        for (int ia = 0; ia < unit_cell_.num_atoms(); ia++) {
-            fin["density_matrix"][ia].read("data", this->density_matrix(ia));
-        }
-
-        rho().hdf5_read(name__, "density", gv);
-        rho().rg().fft_transform(1);
-        for (int j = 0; j < ctx_.num_mag_dims(); j++) {
-            mag(j).hdf5_read(name__, "magnetization/" + std::to_string(j), gv);
-            mag(j).rg().fft_transform(1);
-        }
-    }
+    load(std::string name__);
 
     void
     save_to_xsf()
