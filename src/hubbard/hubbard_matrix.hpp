@@ -63,10 +63,13 @@ class Hubbard_matrix
     access(std::string const& what__, std::complex<double>* ptr__, int ld__);
 
     void
-    print_local(int ia__, std::ostream& out__) const;
+    print_local(int idx__, std::ostream& out__) const;
 
     void
     print_nonlocal(int idx__, std::ostream& out__) const;
+
+    void
+    print(std::ostream& out__) const;
 
     void
     zero();

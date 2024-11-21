@@ -323,11 +323,11 @@ Hubbard_matrix::print_nonlocal(int idx__, std::ostream& out__) const
 void
 Hubbard_matrix::zero()
 {
-    for (int ia = 0; ia < static_cast<int>(local_.size()); ia++) {
-        local_[ia].zero();
+    for (int i = 0; i < static_cast<int>(local_.size()); i++) {
+        local_[i].zero();
     }
 
-    for (int i = 0; i < static_cast<int>(ctx_.cfg().hubbard().nonlocal().size()); i++) {
+    for (int i = 0; i < static_cast<int>(nonlocal_.size()); i++) {
         nonlocal_[i].zero();
     }
 
@@ -335,6 +335,18 @@ Hubbard_matrix::zero()
         if (apply_constraints(at_lvl)) {
             multipliers_constraints_[at_lvl].zero();
         }
+    }
+}
+
+void
+Hubbard_matrix::print(std::ostream& out__) const
+{
+    for (int i = 0; i < static_cast<int>(local_.size()); i++) {
+        this->print_local(i, out__);
+    }
+
+    for (int i = 0; i < static_cast<int>(nonlocal_.size()); i++) {
+        this->print_nonlocal(i, out__);
     }
 }
 
