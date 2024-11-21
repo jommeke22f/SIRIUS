@@ -2819,7 +2819,7 @@ sirius_generate_effective_potential(void* const* gs_handler__, int* error_code__
     call_sirius(
             [&]() {
                 auto& gs = get_gs(gs_handler__);
-                gs.potential().generate(gs.density(), gs.ctx().use_symmetry(), false);
+                gs.potential().generate(gs.density(), gs.ctx().use_symmetry(), true);
             },
             error_code__);
 }
@@ -6454,7 +6454,6 @@ sirius_save_state(void** gs_handler__, const char* file_name__, int* error_code_
                 auto& gs = get_gs(gs_handler__);
                 std::string file_name(file_name__);
                 gs.ctx().create_storage_file(file_name);
-                gs.potential().save(file_name);
                 gs.density().save(file_name);
             },
             error_code__);
@@ -6486,7 +6485,6 @@ sirius_load_state(void** gs_handler__, const char* file_name__, int* error_code_
             [&]() {
                 auto& gs = get_gs(gs_handler__);
                 std::string file_name(file_name__);
-                gs.potential().load(file_name);
                 gs.density().load(file_name);
             },
             error_code__);

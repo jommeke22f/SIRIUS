@@ -348,7 +348,8 @@ DFT_ground_state::find(double density_tol__, double energy_tol__, double iter_so
         ctx_.message(2, __func__, out);
         /* check if the calculation has converged */
         bool converged{true};
-        converged = (std::abs(eold - etot) < energy_tol__) && result.converged && iter_solver_converged;
+        //converged = (std::abs(eold - etot) < energy_tol__) && result.converged && iter_solver_converged;
+        converged = (std::abs(eold - etot) < energy_tol__) && iter_solver_converged;
         if (ctx_.cfg().mixer().use_hartree()) {
             converged = converged && (eha_res < density_tol__);
         } else {
@@ -379,7 +380,7 @@ DFT_ground_state::find(double density_tol__, double energy_tol__, double iter_so
                 density_.mag(j).rg().fft_transform(-1);
             }
         }
-        potential_.save(storage_file_name);
+        //potential_.save(storage_file_name);
         density_.save(storage_file_name);
         // kset_.save(storage_file_name);
     }
