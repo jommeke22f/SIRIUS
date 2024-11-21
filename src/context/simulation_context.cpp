@@ -1173,16 +1173,11 @@ Simulation_context::create_storage_file(std::string name__) const
         /* create new hdf5 file */
         HDF5_tree fout(name__, hdf5_access_t::truncate);
         fout.create_node("parameters");
-        //fout.create_node("effective_potential");
-        //fout.create_node("effective_magnetic_field");
-        //fout.create_node("xc_energy_density");
-        //fout.create_node("xc_potential");
         fout.create_node("density");
         fout.create_node("magnetization");
 
         for (int j = 0; j < num_mag_dims(); j++) {
             fout["magnetization"].create_node(j);
-            //fout["effective_magnetic_field"].create_node(j);
         }
 
         fout["parameters"].write("num_spins", num_spins());

@@ -2062,7 +2062,8 @@ Density::save(std::string name__) const
                 fout["occupation_matrix"]["local"].create_node(i).write("data", this->occupation_matrix().local(i));
             }
             for (size_t i = 0; i < this->occupation_matrix().nonlocal().size(); i++) {
-                fout["occupation_matrix"]["nonlocal"].create_node(i).write("data", this->occupation_matrix().nonlocal(i));
+                fout["occupation_matrix"]["nonlocal"].create_node(i).write("data",
+                                                                           this->occupation_matrix().nonlocal(i));
             }
         }
     }

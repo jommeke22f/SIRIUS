@@ -376,7 +376,7 @@ class Atom_type
     void
     print_info(std::ostream& out__) const;
 
-    /// Serialize atom type information to json 
+    /// Serialize atom type information to json
     nlohmann::json
     serialize() const;
 

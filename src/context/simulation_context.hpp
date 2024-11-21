@@ -330,7 +330,7 @@ class Simulation_context : public Simulation_parameters
     }
 
     /// Create a simulation context with world communicator and load parameters from JSON string or a file.
-    explicit Simulation_context(std::string const& str__, mpi::Communicator const& comm__ =  mpi::Communicator::world())
+    explicit Simulation_context(std::string const& str__, mpi::Communicator const& comm__ = mpi::Communicator::world())
         : comm_(comm__)
     {
         init_common();
@@ -339,8 +339,8 @@ class Simulation_context : public Simulation_parameters
             std::string json_string;
             fin.read("config", json_string);
             auto dict = read_json_from_file_or_string(json_string);
-            for (auto& e: dict["unit_cell"]["atom_types"]) {
-                auto label = e.get<std::string>();
+            for (auto& e : dict["unit_cell"]["atom_types"]) {
+                auto label                             = e.get<std::string>();
                 dict["unit_cell"]["atom_files"][label] = "";
             }
             import(dict);
@@ -359,7 +359,7 @@ class Simulation_context : public Simulation_parameters
     }
 
     explicit Simulation_context(nlohmann::json const& dict__,
-            mpi::Communicator const& comm__ =  mpi::Communicator::world())
+                                mpi::Communicator const& comm__ = mpi::Communicator::world())
         : comm_(comm__)
     {
         init_common();

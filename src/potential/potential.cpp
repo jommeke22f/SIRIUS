@@ -372,62 +372,6 @@ Potential::generate(Density const& density__, bool use_symmetry__, bool transfor
     }
 }
 
-//void
-//Potential::save(std::string name__)
-//{
-//    effective_potential().hdf5_write(name__, "effective_potential");
-//    for (int j = 0; j < ctx_.num_mag_dims(); j++) {
-//        effective_magnetic_field(j).hdf5_write(name__, "effective_magnetic_field/" + std::to_string(j));
-//    }
-//    xc_energy_density().hdf5_write(name__, "xc_energy_density");
-//    xc_potential().hdf5_write(name__, "xc_potential");
-//    if (ctx_.comm().rank() == 0 && !ctx_.full_potential()) {
-//        HDF5_tree fout(name__, hdf5_access_t::read_write);
-//        for (int j = 0; j < ctx_.unit_cell().num_atoms(); j++) {
-//            if (ctx_.unit_cell().atom(j).mt_basis_size() != 0) {
-//                fout["unit_cell"]["atoms"][j].write("D_operator", ctx_.unit_cell().atom(j).d_mtrx());
-//            }
-//        }
-//    }
-//    comm_.barrier();
-//}
-//
-//void
-//Potential::load(std::string name__)
-//{
-//    HDF5_tree fin(name__, hdf5_access_t::read_only);
-//
-//    int ngv;
-//    fin.read("/parameters/num_gvec", &ngv, 1);
-//    if (ngv != ctx_.gvec().num_gvec()) {
-//        RTE_THROW("wrong number of G-vectors");
-//    }
-//    mdarray<int, 2> gv({3, ngv});
-//    fin.read("/parameters/gvec", gv);
-//
-//    effective_potential().hdf5_read(name__, "effective_potential", gv);
-//    effective_potential().rg().fft_transform(1);
-//
-//    for (int j = 0; j < ctx_.num_mag_dims(); j++) {
-//        effective_magnetic_field(j).hdf5_read(name__, "effective_magnetic_field/" + std::to_string(j), gv);
-//        effective_magnetic_field(j).rg().fft_transform(1);
-//    }
-//    xc_energy_density().hdf5_read(name__, "xc_energy_density", gv);
-//    xc_energy_density().rg().fft_transform(1);
-//    xc_potential().hdf5_read(name__, "xc_potential", gv);
-//    xc_potential().rg().fft_transform(1);
-//
-//    if (ctx_.full_potential()) {
-//        update_atomic_potential();
-//    }
-//
-//    if (!ctx_.full_potential()) {
-//        for (int j = 0; j < ctx_.unit_cell().num_atoms(); j++) {
-//            fin["unit_cell"]["atoms"][j].read("D_operator", ctx_.unit_cell().atom(j).d_mtrx());
-//        }
-//    }
-//}
-
 void
 Potential::update_atomic_potential()
 {

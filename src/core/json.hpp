@@ -40,7 +40,8 @@ try_parse(std::istream& is)
 }
 
 inline bool
-is_json_string(std::string const& str__) {
+is_json_string(std::string const& str__)
+{
     try {
         auto json = nlohmann::json::parse(str__);
         return true;
