@@ -47,7 +47,7 @@ type_info = {
         'c_type' : 'type(C_PTR)'
     },
     'H0_handler' : {
-        'f_type' : 'type(H0_handler)',
+        'f_type' : 'type(sirius_H0_handler)',
         'c_type' : 'type(C_PTR)'
     }
 }

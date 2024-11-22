@@ -6805,7 +6805,7 @@ subroutine sirius_create_hamiltonian(gs_handler,H0_handler,error_code)
 implicit none
 !
 type(sirius_ground_state_handler), target, intent(in) :: gs_handler
-type(H0_handler), target, intent(out) :: H0_handler
+type(sirius_H0_handler), target, intent(out) :: H0_handler
 integer, optional, target, intent(out) :: error_code
 !
 type(C_PTR) :: gs_handler_ptr
@@ -6851,7 +6851,7 @@ implicit none
 !
 type(sirius_context_handler), target, intent(in) :: handler
 type(sirius_ground_state_handler), target, intent(in) :: gs_handler
-type(H0_handler), target, intent(in) :: H0_handler
+type(sirius_H0_handler), target, intent(in) :: H0_handler
 real(8), target, intent(in) :: iter_solver_tol
 integer, target, intent(in) :: max_steps
 integer, optional, target, intent(in) :: converge_by_energy
@@ -7240,6 +7240,6 @@ subroutine sirius_free_handler_H0(handler, error_code)
     type(sirius_H0_handler), intent(inout) :: handler
     integer, optional, target, intent(out) :: error_code
     call sirius_free_object_handler(handler%handler_ptr_, error_code)
-end subroutine sirius_free_handler_ctx
+end subroutine sirius_free_handler_H0
 
 end module
