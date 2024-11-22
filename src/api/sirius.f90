@@ -38,9 +38,15 @@ type sirius_kpoint_set_handler
     type(C_PTR) :: handler_ptr_ = C_NULL_PTR
 end type
 
+!> @brief Opaque wrapper for K-point independent Hamiltonian object.
+type sirius_H0_handler
+    private
+    type(C_PTR) :: handler_ptr_ = C_NULL_PTR
+end type
+
 !> @brief Free any of the SIRIUS handlers (context, ground state or k-points).
 interface sirius_free_handler
-    module procedure sirius_free_handler_ctx, sirius_free_handler_ks, sirius_free_handler_dft
+    module procedure sirius_free_handler_ctx, sirius_free_handler_ks, sirius_free_handler_dft, sirius_free_handler_H0
 end interface
 
 contains
@@ -1396,7 +1402,7 @@ end subroutine sirius_set_periodic_function_ptr
 
 !
 !> @brief Set values of the periodic function.
-!> @param [in] handler Handler of the DFT ground state object.
+!> @param [in] gs_handler Handler of the DFT ground state object.
 !> @param [in] label Label of the function.
 !> @param [in] f_mt Pointer to the muffin-tin part of the function.
 !> @param [in] lmmax Number of lm components.
@@ -1408,11 +1414,11 @@ end subroutine sirius_set_periodic_function_ptr
 !> @param [in] size_z Local or global size of Z-dimension of FFT grid depending on offset_z
 !> @param [in] offset_z Offset in the Z-dimension of FFT grid for this MPI rank.
 !> @param [out] error_code Error code.
-subroutine sirius_set_periodic_function(handler,label,f_mt,lmmax,nrmtmax,num_atoms,&
+subroutine sirius_set_periodic_function(gs_handler,label,f_mt,lmmax,nrmtmax,num_atoms,&
 &f_rg,size_x,size_y,size_z,offset_z,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 real(8), optional, target, intent(in) :: f_mt(:,:,:)
 integer, optional, target, intent(in) :: lmmax
@@ -1425,7 +1431,7 @@ integer, optional, target, intent(in) :: size_z
 integer, optional, target, intent(in) :: offset_z
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: f_mt_ptr
@@ -1440,11 +1446,11 @@ type(C_PTR) :: offset_z_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_set_periodic_function_aux(handler,label,f_mt,lmmax,nrmtmax,num_atoms,&
-&f_rg,size_x,size_y,size_z,offset_z,error_code)&
+subroutine sirius_set_periodic_function_aux(gs_handler,label,f_mt,lmmax,nrmtmax,&
+&num_atoms,f_rg,size_x,size_y,size_z,offset_z,error_code)&
 &bind(C, name="sirius_set_periodic_function")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: f_mt
 type(C_PTR), value :: lmmax
@@ -1459,8 +1465,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -1505,14 +1511,15 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_set_periodic_function_aux(handler_ptr,label_ptr,f_mt_ptr,lmmax_ptr,nrmtmax_ptr,&
-&num_atoms_ptr,f_rg_ptr,size_x_ptr,size_y_ptr,size_z_ptr,offset_z_ptr,error_code_ptr)
+call sirius_set_periodic_function_aux(gs_handler_ptr,label_ptr,f_mt_ptr,lmmax_ptr,&
+&nrmtmax_ptr,num_atoms_ptr,f_rg_ptr,size_x_ptr,size_y_ptr,size_z_ptr,offset_z_ptr,&
+&error_code_ptr)
 deallocate(label_c_type)
 end subroutine sirius_set_periodic_function
 
 !
 !> @brief Get values of the periodic function.
-!> @param [in] handler Handler of the DFT ground state object.
+!> @param [in] gs_handler Handler of the DFT ground state object.
 !> @param [in] label Label of the function.
 !> @param [in] f_mt Pointer to the muffin-tin part of the function.
 !> @param [in] lmmax Number of lm components.
@@ -1524,11 +1531,11 @@ end subroutine sirius_set_periodic_function
 !> @param [in] size_z Local or global size of Z-dimension of FFT grid depending on offset_z
 !> @param [in] offset_z Offset in the Z-dimension of FFT grid for this MPI rank.
 !> @param [out] error_code Error code
-subroutine sirius_get_periodic_function(handler,label,f_mt,lmmax,nrmtmax,num_atoms,&
+subroutine sirius_get_periodic_function(gs_handler,label,f_mt,lmmax,nrmtmax,num_atoms,&
 &f_rg,size_x,size_y,size_z,offset_z,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 real(8), optional, target, intent(in) :: f_mt(:,:,:)
 integer, optional, target, intent(in) :: lmmax
@@ -1541,7 +1548,7 @@ integer, optional, target, intent(in) :: size_z
 integer, optional, target, intent(in) :: offset_z
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: f_mt_ptr
@@ -1556,11 +1563,11 @@ type(C_PTR) :: offset_z_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_periodic_function_aux(handler,label,f_mt,lmmax,nrmtmax,num_atoms,&
-&f_rg,size_x,size_y,size_z,offset_z,error_code)&
+subroutine sirius_get_periodic_function_aux(gs_handler,label,f_mt,lmmax,nrmtmax,&
+&num_atoms,f_rg,size_x,size_y,size_z,offset_z,error_code)&
 &bind(C, name="sirius_get_periodic_function")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: f_mt
 type(C_PTR), value :: lmmax
@@ -1575,8 +1582,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -1621,8 +1628,9 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_periodic_function_aux(handler_ptr,label_ptr,f_mt_ptr,lmmax_ptr,nrmtmax_ptr,&
-&num_atoms_ptr,f_rg_ptr,size_x_ptr,size_y_ptr,size_z_ptr,offset_z_ptr,error_code_ptr)
+call sirius_get_periodic_function_aux(gs_handler_ptr,label_ptr,f_mt_ptr,lmmax_ptr,&
+&nrmtmax_ptr,num_atoms_ptr,f_rg_ptr,size_x_ptr,size_y_ptr,size_z_ptr,offset_z_ptr,&
+&error_code_ptr)
 deallocate(label_c_type)
 end subroutine sirius_get_periodic_function
 
@@ -2633,7 +2641,7 @@ end subroutine sirius_set_atom_position
 
 !
 !> @brief Set plane-wave coefficients of a periodic function.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [in] label Label of the function.
 !> @param [in] pw_coeffs Local array of plane-wave coefficients.
 !> @param [in] transform_to_rg True if function has to be transformed to real-space grid.
@@ -2641,11 +2649,11 @@ end subroutine sirius_set_atom_position
 !> @param [in] gvl List of G-vectors in lattice coordinates (Miller indices).
 !> @param [in] comm MPI communicator used in distribution of G-vectors
 !> @param [out] error_code Error code.
-subroutine sirius_set_pw_coeffs(handler,label,pw_coeffs,transform_to_rg,ngv,gvl,&
+subroutine sirius_set_pw_coeffs(gs_handler,label,pw_coeffs,transform_to_rg,ngv,gvl,&
 &comm,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 complex(8), target, intent(in) :: pw_coeffs(:)
 logical, optional, target, intent(in) :: transform_to_rg
@@ -2654,7 +2662,7 @@ integer, optional, target, intent(in) :: gvl(:,:)
 integer, optional, target, intent(in) :: comm
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: pw_coeffs_ptr
@@ -2666,11 +2674,11 @@ type(C_PTR) :: comm_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_set_pw_coeffs_aux(handler,label,pw_coeffs,transform_to_rg,ngv,&
+subroutine sirius_set_pw_coeffs_aux(gs_handler,label,pw_coeffs,transform_to_rg,ngv,&
 &gvl,comm,error_code)&
 &bind(C, name="sirius_set_pw_coeffs")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: pw_coeffs
 type(C_PTR), value :: transform_to_rg
@@ -2681,8 +2689,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -2710,7 +2718,7 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_set_pw_coeffs_aux(handler_ptr,label_ptr,pw_coeffs_ptr,transform_to_rg_ptr,&
+call sirius_set_pw_coeffs_aux(gs_handler_ptr,label_ptr,pw_coeffs_ptr,transform_to_rg_ptr,&
 &ngv_ptr,gvl_ptr,comm_ptr,error_code_ptr)
 deallocate(label_c_type)
 if (present(transform_to_rg)) then
@@ -2719,17 +2727,17 @@ end subroutine sirius_set_pw_coeffs
 
 !
 !> @brief Get plane-wave coefficients of a periodic function.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [in] label Label of the function.
 !> @param [in] pw_coeffs Local array of plane-wave coefficients.
 !> @param [in] ngv Local number of G-vectors.
 !> @param [in] gvl List of G-vectors in lattice coordinates (Miller indices).
 !> @param [in] comm MPI communicator used in distribution of G-vectors
 !> @param [out] error_code Error code.
-subroutine sirius_get_pw_coeffs(handler,label,pw_coeffs,ngv,gvl,comm,error_code)
+subroutine sirius_get_pw_coeffs(gs_handler,label,pw_coeffs,ngv,gvl,comm,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 complex(8), target, intent(in) :: pw_coeffs(:)
 integer, optional, target, intent(in) :: ngv
@@ -2737,7 +2745,7 @@ integer, optional, target, intent(in) :: gvl(:,:)
 integer, optional, target, intent(in) :: comm
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: pw_coeffs_ptr
@@ -2747,10 +2755,10 @@ type(C_PTR) :: comm_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_pw_coeffs_aux(handler,label,pw_coeffs,ngv,gvl,comm,error_code)&
+subroutine sirius_get_pw_coeffs_aux(gs_handler,label,pw_coeffs,ngv,gvl,comm,error_code)&
 &bind(C, name="sirius_get_pw_coeffs")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: pw_coeffs
 type(C_PTR), value :: ngv
@@ -2760,8 +2768,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -2784,7 +2792,7 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_pw_coeffs_aux(handler_ptr,label_ptr,pw_coeffs_ptr,ngv_ptr,gvl_ptr,&
+call sirius_get_pw_coeffs_aux(gs_handler_ptr,label_ptr,pw_coeffs_ptr,ngv_ptr,gvl_ptr,&
 &comm_ptr,error_code_ptr)
 deallocate(label_c_type)
 end subroutine sirius_get_pw_coeffs
@@ -2920,64 +2928,64 @@ end subroutine sirius_find_eigen_states
 
 !
 !> @brief Generate initial density.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [out] error_code Error code.
-subroutine sirius_generate_initial_density(handler,error_code)
+subroutine sirius_generate_initial_density(gs_handler,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_generate_initial_density_aux(handler,error_code)&
+subroutine sirius_generate_initial_density_aux(gs_handler,error_code)&
 &bind(C, name="sirius_generate_initial_density")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_generate_initial_density_aux(handler_ptr,error_code_ptr)
+call sirius_generate_initial_density_aux(gs_handler_ptr,error_code_ptr)
 end subroutine sirius_generate_initial_density
 
 !
 !> @brief Generate effective potential and magnetic field.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [out] error_code Error code.
-subroutine sirius_generate_effective_potential(handler,error_code)
+subroutine sirius_generate_effective_potential(gs_handler,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_generate_effective_potential_aux(handler,error_code)&
+subroutine sirius_generate_effective_potential_aux(gs_handler,error_code)&
 &bind(C, name="sirius_generate_effective_potential")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_generate_effective_potential_aux(handler_ptr,error_code_ptr)
+call sirius_generate_effective_potential_aux(gs_handler_ptr,error_code_ptr)
 end subroutine sirius_generate_effective_potential
 
 !
@@ -3202,37 +3210,37 @@ end subroutine sirius_get_band_energies
 
 !
 !> @brief Get one of the total energy components.
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [in] label Label of the energy component to get.
 !> @param [out] energy Total energy component.
 !> @param [out] error_code Error code.
-subroutine sirius_get_energy(handler,label,energy,error_code)
+subroutine sirius_get_energy(gs_handler,label,energy,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 real(8), target, intent(out) :: energy
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: energy_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_energy_aux(handler,label,energy,error_code)&
+subroutine sirius_get_energy_aux(gs_handler,label,energy,error_code)&
 &bind(C, name="sirius_get_energy")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: energy
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -3243,43 +3251,43 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_energy_aux(handler_ptr,label_ptr,energy_ptr,error_code_ptr)
+call sirius_get_energy_aux(gs_handler_ptr,label_ptr,energy_ptr,error_code_ptr)
 deallocate(label_c_type)
 end subroutine sirius_get_energy
 
 !
 !> @brief Get one of the total force components.
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [in] label Label of the force component to get.
 !> @param [out] forces Total force component for each atom.
 !> @param [out] error_code Error code.
-subroutine sirius_get_forces(handler,label,forces,error_code)
+subroutine sirius_get_forces(gs_handler,label,forces,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 real(8), target, intent(out) :: forces(:,:)
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: forces_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_forces_aux(handler,label,forces,error_code)&
+subroutine sirius_get_forces_aux(gs_handler,label,forces,error_code)&
 &bind(C, name="sirius_get_forces")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: forces
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -3290,43 +3298,43 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_forces_aux(handler_ptr,label_ptr,forces_ptr,error_code_ptr)
+call sirius_get_forces_aux(gs_handler_ptr,label_ptr,forces_ptr,error_code_ptr)
 deallocate(label_c_type)
 end subroutine sirius_get_forces
 
 !
 !> @brief Get one of the stress tensor components.
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [in] label Label of the stress tensor component to get.
 !> @param [out] stress_tensor Component of the total stress tensor.
 !> @param [out] error_code Error code.
-subroutine sirius_get_stress_tensor(handler,label,stress_tensor,error_code)
+subroutine sirius_get_stress_tensor(gs_handler,label,stress_tensor,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 real(8), target, intent(out) :: stress_tensor(3, 3)
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: stress_tensor_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_stress_tensor_aux(handler,label,stress_tensor,error_code)&
+subroutine sirius_get_stress_tensor_aux(gs_handler,label,stress_tensor,error_code)&
 &bind(C, name="sirius_get_stress_tensor")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: stress_tensor
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -3337,7 +3345,7 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_stress_tensor_aux(handler_ptr,label_ptr,stress_tensor_ptr,error_code_ptr)
+call sirius_get_stress_tensor_aux(gs_handler_ptr,label_ptr,stress_tensor_ptr,error_code_ptr)
 deallocate(label_c_type)
 end subroutine sirius_get_stress_tensor
 
@@ -3714,32 +3722,32 @@ end subroutine sirius_set_atom_type_configuration
 
 !
 !> @brief Generate Coulomb potential by solving Poisson equation
-!> @param [in] handler DFT ground state handler
+!> @param [in] gs_handler DFT ground state handler
 !> @param [out] vh_el Electronic part of Hartree potential at each atom's origin.
 !> @param [out] error_code Error code
-subroutine sirius_generate_coulomb_potential(handler,vh_el,error_code)
+subroutine sirius_generate_coulomb_potential(gs_handler,vh_el,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 real(8), optional, target, intent(out) :: vh_el(:)
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: vh_el_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_generate_coulomb_potential_aux(handler,vh_el,error_code)&
+subroutine sirius_generate_coulomb_potential_aux(gs_handler,vh_el,error_code)&
 &bind(C, name="sirius_generate_coulomb_potential")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: vh_el
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 vh_el_ptr = C_NULL_PTR
 if (present(vh_el)) then
 vh_el_ptr = C_LOC(vh_el)
@@ -3748,38 +3756,38 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_generate_coulomb_potential_aux(handler_ptr,vh_el_ptr,error_code_ptr)
+call sirius_generate_coulomb_potential_aux(gs_handler_ptr,vh_el_ptr,error_code_ptr)
 end subroutine sirius_generate_coulomb_potential
 
 !
 !> @brief Generate XC potential using LibXC
-!> @param [in] handler Ground state handler
+!> @param [in] gs_handler Ground state handler
 !> @param [out] error_code Error code
-subroutine sirius_generate_xc_potential(handler,error_code)
+subroutine sirius_generate_xc_potential(gs_handler,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_generate_xc_potential_aux(handler,error_code)&
+subroutine sirius_generate_xc_potential_aux(gs_handler,error_code)&
 &bind(C, name="sirius_generate_xc_potential")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_generate_xc_potential_aux(handler_ptr,error_code_ptr)
+call sirius_generate_xc_potential_aux(gs_handler_ptr,error_code_ptr)
 end subroutine sirius_generate_xc_potential
 
 !
@@ -4621,33 +4629,33 @@ end subroutine sirius_set_equivalent_atoms
 
 !
 !> @brief Set the new spherical potential.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [out] error_code Error code.
-subroutine sirius_update_atomic_potential(handler,error_code)
+subroutine sirius_update_atomic_potential(gs_handler,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_update_atomic_potential_aux(handler,error_code)&
+subroutine sirius_update_atomic_potential_aux(gs_handler,error_code)&
 &bind(C, name="sirius_update_atomic_potential")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_update_atomic_potential_aux(handler_ptr,error_code_ptr)
+call sirius_update_atomic_potential_aux(gs_handler_ptr,error_code_ptr)
 end subroutine sirius_update_atomic_potential
 
 !
@@ -5062,23 +5070,23 @@ end subroutine sirius_dump_runtime_setup
 
 !
 !> @brief Get the first-variational eigen vectors
-!> @param [in] handler K-point set handler
+!> @param [in] ks_handler K-point set handler
 !> @param [in] ik Global index of the k-point
 !> @param [out] fv_evec Output first-variational eigenvector array
 !> @param [in] ld Leading dimension of fv_evec
 !> @param [in] num_fv_states Number of first-variational states
 !> @param [out] error_code Error code
-subroutine sirius_get_fv_eigen_vectors(handler,ik,fv_evec,ld,num_fv_states,error_code)
+subroutine sirius_get_fv_eigen_vectors(ks_handler,ik,fv_evec,ld,num_fv_states,error_code)
 implicit none
 !
-type(sirius_kpoint_set_handler), target, intent(in) :: handler
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
 integer, target, intent(in) :: ik
 complex(8), target, intent(out) :: fv_evec(:,:)
 integer, target, intent(in) :: ld
 integer, target, intent(in) :: num_fv_states
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: ks_handler_ptr
 type(C_PTR) :: ik_ptr
 type(C_PTR) :: fv_evec_ptr
 type(C_PTR) :: ld_ptr
@@ -5086,10 +5094,11 @@ type(C_PTR) :: num_fv_states_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_fv_eigen_vectors_aux(handler,ik,fv_evec,ld,num_fv_states,error_code)&
+subroutine sirius_get_fv_eigen_vectors_aux(ks_handler,ik,fv_evec,ld,num_fv_states,&
+&error_code)&
 &bind(C, name="sirius_get_fv_eigen_vectors")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: ks_handler
 type(C_PTR), value :: ik
 type(C_PTR), value :: fv_evec
 type(C_PTR), value :: ld
@@ -5098,8 +5107,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
 ik_ptr = C_NULL_PTR
 ik_ptr = C_LOC(ik)
 fv_evec_ptr = C_NULL_PTR
@@ -5112,37 +5121,37 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_fv_eigen_vectors_aux(handler_ptr,ik_ptr,fv_evec_ptr,ld_ptr,num_fv_states_ptr,&
+call sirius_get_fv_eigen_vectors_aux(ks_handler_ptr,ik_ptr,fv_evec_ptr,ld_ptr,num_fv_states_ptr,&
 &error_code_ptr)
 end subroutine sirius_get_fv_eigen_vectors
 
 !
 !> @brief Get the first-variational eigen values
-!> @param [in] handler K-point set handler
+!> @param [in] ks_handler K-point set handler
 !> @param [in] ik Global index of the k-point
 !> @param [out] fv_eval Output first-variational eigenvector array
 !> @param [in] num_fv_states Number of first-variational states
 !> @param [out] error_code Error code
-subroutine sirius_get_fv_eigen_values(handler,ik,fv_eval,num_fv_states,error_code)
+subroutine sirius_get_fv_eigen_values(ks_handler,ik,fv_eval,num_fv_states,error_code)
 implicit none
 !
-type(sirius_kpoint_set_handler), target, intent(in) :: handler
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
 integer, target, intent(in) :: ik
 real(8), target, intent(out) :: fv_eval(:)
 integer, target, intent(in) :: num_fv_states
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: ks_handler_ptr
 type(C_PTR) :: ik_ptr
 type(C_PTR) :: fv_eval_ptr
 type(C_PTR) :: num_fv_states_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_fv_eigen_values_aux(handler,ik,fv_eval,num_fv_states,error_code)&
+subroutine sirius_get_fv_eigen_values_aux(ks_handler,ik,fv_eval,num_fv_states,error_code)&
 &bind(C, name="sirius_get_fv_eigen_values")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: ks_handler
 type(C_PTR), value :: ik
 type(C_PTR), value :: fv_eval
 type(C_PTR), value :: num_fv_states
@@ -5150,8 +5159,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
 ik_ptr = C_NULL_PTR
 ik_ptr = C_LOC(ik)
 fv_eval_ptr = C_NULL_PTR
@@ -5162,37 +5171,37 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_fv_eigen_values_aux(handler_ptr,ik_ptr,fv_eval_ptr,num_fv_states_ptr,&
+call sirius_get_fv_eigen_values_aux(ks_handler_ptr,ik_ptr,fv_eval_ptr,num_fv_states_ptr,&
 &error_code_ptr)
 end subroutine sirius_get_fv_eigen_values
 
 !
 !> @brief Get the second-variational eigen vectors
-!> @param [in] handler K-point set handler
+!> @param [in] ks_handler K-point set handler
 !> @param [in] ik Global index of the k-point
 !> @param [out] sv_evec Output second-variational eigenvector array
 !> @param [in] num_bands Number of second-variational bands.
 !> @param [out] error_code Error code
-subroutine sirius_get_sv_eigen_vectors(handler,ik,sv_evec,num_bands,error_code)
+subroutine sirius_get_sv_eigen_vectors(ks_handler,ik,sv_evec,num_bands,error_code)
 implicit none
 !
-type(sirius_kpoint_set_handler), target, intent(in) :: handler
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
 integer, target, intent(in) :: ik
 complex(8), target, intent(out) :: sv_evec(:,:)
 integer, target, intent(in) :: num_bands
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: ks_handler_ptr
 type(C_PTR) :: ik_ptr
 type(C_PTR) :: sv_evec_ptr
 type(C_PTR) :: num_bands_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_sv_eigen_vectors_aux(handler,ik,sv_evec,num_bands,error_code)&
+subroutine sirius_get_sv_eigen_vectors_aux(ks_handler,ik,sv_evec,num_bands,error_code)&
 &bind(C, name="sirius_get_sv_eigen_vectors")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: ks_handler
 type(C_PTR), value :: ik
 type(C_PTR), value :: sv_evec
 type(C_PTR), value :: num_bands
@@ -5200,8 +5209,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
 ik_ptr = C_NULL_PTR
 ik_ptr = C_LOC(ik)
 sv_evec_ptr = C_NULL_PTR
@@ -5212,13 +5221,13 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_sv_eigen_vectors_aux(handler_ptr,ik_ptr,sv_evec_ptr,num_bands_ptr,&
+call sirius_get_sv_eigen_vectors_aux(ks_handler_ptr,ik_ptr,sv_evec_ptr,num_bands_ptr,&
 &error_code_ptr)
 end subroutine sirius_get_sv_eigen_vectors
 
 !
 !> @brief Set the values of the function on the regular grid.
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [in] label Label of the function.
 !> @param [in] grid_dims Dimensions of the FFT grid.
 !> @param [in] local_box_origin Coordinates of the local box origin for each MPI rank
@@ -5227,11 +5236,11 @@ end subroutine sirius_get_sv_eigen_vectors
 !> @param [in] values Values of the function (local buffer for each MPI rank).
 !> @param [in] transform_to_pw If true, transform function to PW domain.
 !> @param [out] error_code Error code
-subroutine sirius_set_rg_values(handler,label,grid_dims,local_box_origin,local_box_size,&
+subroutine sirius_set_rg_values(gs_handler,label,grid_dims,local_box_origin,local_box_size,&
 &fcomm,values,transform_to_pw,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 integer, target, intent(in) :: grid_dims(3)
 integer, target, intent(in) :: local_box_origin(:,:)
@@ -5241,7 +5250,7 @@ real(8), target, intent(in) :: values
 logical, optional, target, intent(in) :: transform_to_pw
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: grid_dims_ptr
@@ -5254,11 +5263,11 @@ logical(C_BOOL), target :: transform_to_pw_c_type
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_set_rg_values_aux(handler,label,grid_dims,local_box_origin,local_box_size,&
-&fcomm,values,transform_to_pw,error_code)&
+subroutine sirius_set_rg_values_aux(gs_handler,label,grid_dims,local_box_origin,&
+&local_box_size,fcomm,values,transform_to_pw,error_code)&
 &bind(C, name="sirius_set_rg_values")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: grid_dims
 type(C_PTR), value :: local_box_origin
@@ -5270,8 +5279,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -5295,7 +5304,7 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_set_rg_values_aux(handler_ptr,label_ptr,grid_dims_ptr,local_box_origin_ptr,&
+call sirius_set_rg_values_aux(gs_handler_ptr,label_ptr,grid_dims_ptr,local_box_origin_ptr,&
 &local_box_size_ptr,fcomm_ptr,values_ptr,transform_to_pw_ptr,error_code_ptr)
 deallocate(label_c_type)
 if (present(transform_to_pw)) then
@@ -5304,7 +5313,7 @@ end subroutine sirius_set_rg_values
 
 !
 !> @brief Get the values of the function on the regular grid.
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [in] label Label of the function.
 !> @param [in] grid_dims Dimensions of the FFT grid.
 !> @param [in] local_box_origin Coordinates of the local box origin for each MPI rank
@@ -5313,11 +5322,11 @@ end subroutine sirius_set_rg_values
 !> @param [out] values Values of the function (local buffer for each MPI rank).
 !> @param [in] transform_to_rg If true, transform function to regular grid before fetching the values.
 !> @param [out] error_code Error code
-subroutine sirius_get_rg_values(handler,label,grid_dims,local_box_origin,local_box_size,&
+subroutine sirius_get_rg_values(gs_handler,label,grid_dims,local_box_origin,local_box_size,&
 &fcomm,values,transform_to_rg,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: label
 integer, target, intent(in) :: grid_dims(3)
 integer, target, intent(in) :: local_box_origin(:,:)
@@ -5327,7 +5336,7 @@ real(8), target, intent(out) :: values
 logical, optional, target, intent(in) :: transform_to_rg
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: label_ptr
 character(C_CHAR), target, allocatable :: label_c_type(:)
 type(C_PTR) :: grid_dims_ptr
@@ -5340,11 +5349,11 @@ logical(C_BOOL), target :: transform_to_rg_c_type
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_rg_values_aux(handler,label,grid_dims,local_box_origin,local_box_size,&
-&fcomm,values,transform_to_rg,error_code)&
+subroutine sirius_get_rg_values_aux(gs_handler,label,grid_dims,local_box_origin,&
+&local_box_size,fcomm,values,transform_to_rg,error_code)&
 &bind(C, name="sirius_get_rg_values")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: label
 type(C_PTR), value :: grid_dims
 type(C_PTR), value :: local_box_origin
@@ -5356,8 +5365,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 label_ptr = C_NULL_PTR
 allocate(label_c_type(len(label)+1))
 label_c_type = string_f2c(label)
@@ -5381,7 +5390,7 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_rg_values_aux(handler_ptr,label_ptr,grid_dims_ptr,local_box_origin_ptr,&
+call sirius_get_rg_values_aux(gs_handler_ptr,label_ptr,grid_dims_ptr,local_box_origin_ptr,&
 &local_box_size_ptr,fcomm_ptr,values_ptr,transform_to_rg_ptr,error_code_ptr)
 deallocate(label_c_type)
 if (present(transform_to_rg)) then
@@ -5390,105 +5399,105 @@ end subroutine sirius_get_rg_values
 
 !
 !> @brief Get the total magnetization of the system.
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [out] mag 3D magnetization vector (x,y,z components).
 !> @param [out] error_code Error code
-subroutine sirius_get_total_magnetization(handler,mag,error_code)
+subroutine sirius_get_total_magnetization(gs_handler,mag,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 real(8), target, intent(out) :: mag
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: mag_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_total_magnetization_aux(handler,mag,error_code)&
+subroutine sirius_get_total_magnetization_aux(gs_handler,mag,error_code)&
 &bind(C, name="sirius_get_total_magnetization")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: mag
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 mag_ptr = C_NULL_PTR
 mag_ptr = C_LOC(mag)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_total_magnetization_aux(handler_ptr,mag_ptr,error_code_ptr)
+call sirius_get_total_magnetization_aux(gs_handler_ptr,mag_ptr,error_code_ptr)
 end subroutine sirius_get_total_magnetization
 
 !
 !> @brief Get the total number of kpoints
-!> @param [in] handler Kpoint set handler
+!> @param [in] ks_handler Kpoint set handler
 !> @param [out] num_kpoints number of kpoints in the set
 !> @param [out] error_code Error code.
-subroutine sirius_get_num_kpoints(handler,num_kpoints,error_code)
+subroutine sirius_get_num_kpoints(ks_handler,num_kpoints,error_code)
 implicit none
 !
-type(sirius_kpoint_set_handler), target, intent(in) :: handler
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
 integer, target, intent(out) :: num_kpoints
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: ks_handler_ptr
 type(C_PTR) :: num_kpoints_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_num_kpoints_aux(handler,num_kpoints,error_code)&
+subroutine sirius_get_num_kpoints_aux(ks_handler,num_kpoints,error_code)&
 &bind(C, name="sirius_get_num_kpoints")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: ks_handler
 type(C_PTR), value :: num_kpoints
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
 num_kpoints_ptr = C_NULL_PTR
 num_kpoints_ptr = C_LOC(num_kpoints)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_num_kpoints_aux(handler_ptr,num_kpoints_ptr,error_code_ptr)
+call sirius_get_num_kpoints_aux(ks_handler_ptr,num_kpoints_ptr,error_code_ptr)
 end subroutine sirius_get_num_kpoints
 
 !
 !> @brief Get the kpoint properties
-!> @param [in] handler Kpoint set handler
+!> @param [in] ks_handler Kpoint set handler
 !> @param [in] ik Index of the kpoint
 !> @param [out] weight Weight of the kpoint
 !> @param [out] coordinates Coordinates of the kpoint
 !> @param [out] error_code Error code.
-subroutine sirius_get_kpoint_properties(handler,ik,weight,coordinates,error_code)
+subroutine sirius_get_kpoint_properties(ks_handler,ik,weight,coordinates,error_code)
 implicit none
 !
-type(sirius_kpoint_set_handler), target, intent(in) :: handler
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
 integer, target, intent(in) :: ik
 real(8), target, intent(out) :: weight
 real(8), optional, target, intent(out) :: coordinates
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: ks_handler_ptr
 type(C_PTR) :: ik_ptr
 type(C_PTR) :: weight_ptr
 type(C_PTR) :: coordinates_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_get_kpoint_properties_aux(handler,ik,weight,coordinates,error_code)&
+subroutine sirius_get_kpoint_properties_aux(ks_handler,ik,weight,coordinates,error_code)&
 &bind(C, name="sirius_get_kpoint_properties")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: ks_handler
 type(C_PTR), value :: ik
 type(C_PTR), value :: weight
 type(C_PTR), value :: coordinates
@@ -5496,8 +5505,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
 ik_ptr = C_NULL_PTR
 ik_ptr = C_LOC(ik)
 weight_ptr = C_NULL_PTR
@@ -5510,7 +5519,7 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_get_kpoint_properties_aux(handler_ptr,ik_ptr,weight_ptr,coordinates_ptr,&
+call sirius_get_kpoint_properties_aux(ks_handler_ptr,ik_ptr,weight_ptr,coordinates_ptr,&
 &error_code_ptr)
 end subroutine sirius_get_kpoint_properties
 
@@ -5560,44 +5569,44 @@ end subroutine sirius_set_callback_function
 
 !
 !> @brief Robust wave function optimizer.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [in] ks_handler K-point set handler.
 !> @param [out] error_code Error code.
-subroutine sirius_nlcg(handler,ks_handler,error_code)
+subroutine sirius_nlcg(gs_handler,ks_handler,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: ks_handler_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_nlcg_aux(handler,ks_handler,error_code)&
+subroutine sirius_nlcg_aux(gs_handler,ks_handler,error_code)&
 &bind(C, name="sirius_nlcg")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: ks_handler
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 ks_handler_ptr = C_NULL_PTR
 ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_nlcg_aux(handler_ptr,ks_handler_ptr,error_code_ptr)
+call sirius_nlcg_aux(gs_handler_ptr,ks_handler_ptr,error_code_ptr)
 end subroutine sirius_nlcg
 
 !
 !> @brief Robust wave function optimizer
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [in] ks_handler K-point set handler.
 !> @param [in] temp Temperature in Kelvin
 !> @param [in] smearing smearing label
@@ -5609,11 +5618,11 @@ end subroutine sirius_nlcg
 !> @param [in] processing_unit processing_unit = ["cpu"|"gpu"|"none"]
 !> @param [out] converged None
 !> @param [out] error_code Error code.
-subroutine sirius_nlcg_params(handler,ks_handler,temp,smearing,kappa,tau,tol,maxiter,&
-&restart,processing_unit,converged,error_code)
+subroutine sirius_nlcg_params(gs_handler,ks_handler,temp,smearing,kappa,tau,tol,&
+&maxiter,restart,processing_unit,converged,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
 real(8), target, intent(in) :: temp
 character(*), target, intent(in) :: smearing
@@ -5626,7 +5635,7 @@ character(*), target, intent(in) :: processing_unit
 logical, target, intent(out) :: converged
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: ks_handler_ptr
 type(C_PTR) :: temp_ptr
 type(C_PTR) :: smearing_ptr
@@ -5643,11 +5652,11 @@ logical(C_BOOL), target :: converged_c_type
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_nlcg_params_aux(handler,ks_handler,temp,smearing,kappa,tau,tol,&
-&maxiter,restart,processing_unit,converged,error_code)&
+subroutine sirius_nlcg_params_aux(gs_handler,ks_handler,temp,smearing,kappa,tau,&
+&tol,maxiter,restart,processing_unit,converged,error_code)&
 &bind(C, name="sirius_nlcg_params")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: ks_handler
 type(C_PTR), value :: temp
 type(C_PTR), value :: smearing
@@ -5662,8 +5671,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 ks_handler_ptr = C_NULL_PTR
 ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
 temp_ptr = C_NULL_PTR
@@ -5692,8 +5701,9 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_nlcg_params_aux(handler_ptr,ks_handler_ptr,temp_ptr,smearing_ptr,kappa_ptr,&
-&tau_ptr,tol_ptr,maxiter_ptr,restart_ptr,processing_unit_ptr,converged_ptr,error_code_ptr)
+call sirius_nlcg_params_aux(gs_handler_ptr,ks_handler_ptr,temp_ptr,smearing_ptr,&
+&kappa_ptr,tau_ptr,tol_ptr,maxiter_ptr,restart_ptr,processing_unit_ptr,converged_ptr,&
+&error_code_ptr)
 deallocate(smearing_c_type)
 deallocate(processing_unit_c_type)
 converged = converged_c_type
@@ -5918,38 +5928,38 @@ end subroutine sirius_add_hubbard_atom_constraint
 
 !
 !> @brief Generate H0.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [out] error_code Error code
-subroutine sirius_create_H0(handler,error_code)
+subroutine sirius_create_H0(gs_handler,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_create_H0_aux(handler,error_code)&
+subroutine sirius_create_H0_aux(gs_handler,error_code)&
 &bind(C, name="sirius_create_H0")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_create_H0_aux(handler_ptr,error_code_ptr)
+call sirius_create_H0_aux(gs_handler_ptr,error_code_ptr)
 end subroutine sirius_create_H0
 
 !
 !> @brief Interface to linear solver.
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [in] vkq K+q-point in lattice coordinates
 !> @param [in] num_gvec_kq_loc Local number of G-vectors for k+q-point
 !> @param [in] gvec_kq_loc Local list of G-vectors for k+q-point.
@@ -5966,11 +5976,12 @@ end subroutine sirius_create_H0
 !> @param [in] tol Tolerance for the unconverged residuals (residual L2-norm should be below this value).
 !> @param [out] niter Average number of iterations.
 !> @param [out] error_code Error code
-subroutine sirius_linear_solver(handler,vkq,num_gvec_kq_loc,gvec_kq_loc,dpsi,psi,&
-&eigvals,dvpsi,ld,num_spin_comp,alpha_pv,spin,nbnd_occ_k,nbnd_occ_kq,tol,niter,error_code)
+subroutine sirius_linear_solver(gs_handler,vkq,num_gvec_kq_loc,gvec_kq_loc,dpsi,&
+&psi,eigvals,dvpsi,ld,num_spin_comp,alpha_pv,spin,nbnd_occ_k,nbnd_occ_kq,tol,niter,&
+&error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 real(8), target, intent(in) :: vkq(3)
 integer, target, intent(in) :: num_gvec_kq_loc
 integer, target, intent(in) :: gvec_kq_loc(3, num_gvec_kq_loc)
@@ -5988,7 +5999,7 @@ real(8), optional, target, intent(in) :: tol
 integer, optional, target, intent(out) :: niter
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: vkq_ptr
 type(C_PTR) :: num_gvec_kq_loc_ptr
 type(C_PTR) :: gvec_kq_loc_ptr
@@ -6007,11 +6018,12 @@ type(C_PTR) :: niter_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_linear_solver_aux(handler,vkq,num_gvec_kq_loc,gvec_kq_loc,dpsi,&
-&psi,eigvals,dvpsi,ld,num_spin_comp,alpha_pv,spin,nbnd_occ_k,nbnd_occ_kq,tol,niter,error_code)&
+subroutine sirius_linear_solver_aux(gs_handler,vkq,num_gvec_kq_loc,gvec_kq_loc,dpsi,&
+&psi,eigvals,dvpsi,ld,num_spin_comp,alpha_pv,spin,nbnd_occ_k,nbnd_occ_kq,tol,niter,&
+&error_code)&
 &bind(C, name="sirius_linear_solver")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: vkq
 type(C_PTR), value :: num_gvec_kq_loc
 type(C_PTR), value :: gvec_kq_loc
@@ -6031,8 +6043,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 vkq_ptr = C_NULL_PTR
 vkq_ptr = C_LOC(vkq)
 num_gvec_kq_loc_ptr = C_NULL_PTR
@@ -6071,14 +6083,14 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_linear_solver_aux(handler_ptr,vkq_ptr,num_gvec_kq_loc_ptr,gvec_kq_loc_ptr,&
+call sirius_linear_solver_aux(gs_handler_ptr,vkq_ptr,num_gvec_kq_loc_ptr,gvec_kq_loc_ptr,&
 &dpsi_ptr,psi_ptr,eigvals_ptr,dvpsi_ptr,ld_ptr,num_spin_comp_ptr,alpha_pv_ptr,spin_ptr,&
 &nbnd_occ_k_ptr,nbnd_occ_kq_ptr,tol_ptr,niter_ptr,error_code_ptr)
 end subroutine sirius_linear_solver
 
 !
 !> @brief Generate augmentation charge in case of complex density (linear response)
-!> @param [in] handler DFT ground state handler.
+!> @param [in] gs_handler DFT ground state handler.
 !> @param [in] iat Index of atom type.
 !> @param [in] num_atoms Total number of atoms.
 !> @param [in] num_gvec_loc Local number of G-vectors
@@ -6091,11 +6103,11 @@ end subroutine sirius_linear_solver
 !> @param [in] ldd Leading dimension of density matrix.
 !> @param [inout] rho_aug Resulting augmentation charge.
 !> @param [out] error_code Error code
-subroutine sirius_generate_rhoaug_q(handler,iat,num_atoms,num_gvec_loc,num_spin_comp,&
+subroutine sirius_generate_rhoaug_q(gs_handler,iat,num_atoms,num_gvec_loc,num_spin_comp,&
 &qpw,ldq,phase_factors_q,mill,dens_mtrx,ldd,rho_aug,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, target, intent(in) :: iat
 integer, target, intent(in) :: num_atoms
 integer, target, intent(in) :: num_gvec_loc
@@ -6109,7 +6121,7 @@ integer, target, intent(in) :: ldd
 complex(8), target, intent(inout) :: rho_aug(num_gvec_loc, num_spin_comp)
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: iat_ptr
 type(C_PTR) :: num_atoms_ptr
 type(C_PTR) :: num_gvec_loc_ptr
@@ -6124,11 +6136,11 @@ type(C_PTR) :: rho_aug_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_generate_rhoaug_q_aux(handler,iat,num_atoms,num_gvec_loc,num_spin_comp,&
+subroutine sirius_generate_rhoaug_q_aux(gs_handler,iat,num_atoms,num_gvec_loc,num_spin_comp,&
 &qpw,ldq,phase_factors_q,mill,dens_mtrx,ldd,rho_aug,error_code)&
 &bind(C, name="sirius_generate_rhoaug_q")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: iat
 type(C_PTR), value :: num_atoms
 type(C_PTR), value :: num_gvec_loc
@@ -6144,8 +6156,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 iat_ptr = C_NULL_PTR
 iat_ptr = C_LOC(iat)
 num_atoms_ptr = C_NULL_PTR
@@ -6172,40 +6184,40 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_generate_rhoaug_q_aux(handler_ptr,iat_ptr,num_atoms_ptr,num_gvec_loc_ptr,&
+call sirius_generate_rhoaug_q_aux(gs_handler_ptr,iat_ptr,num_atoms_ptr,num_gvec_loc_ptr,&
 &num_spin_comp_ptr,qpw_ptr,ldq_ptr,phase_factors_q_ptr,mill_ptr,dens_mtrx_ptr,ldd_ptr,&
 &rho_aug_ptr,error_code_ptr)
 end subroutine sirius_generate_rhoaug_q
 
 !
 !> @brief Generate D-operator matrix.
-!> @param [in] handler Ground state handler.
+!> @param [in] gs_handler Ground state handler.
 !> @param [out] error_code Error code
-subroutine sirius_generate_d_operator_matrix(handler,error_code)
+subroutine sirius_generate_d_operator_matrix(gs_handler,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_generate_d_operator_matrix_aux(handler,error_code)&
+subroutine sirius_generate_d_operator_matrix_aux(gs_handler,error_code)&
 &bind(C, name="sirius_generate_d_operator_matrix")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_generate_d_operator_matrix_aux(handler_ptr,error_code_ptr)
+call sirius_generate_d_operator_matrix_aux(gs_handler_ptr,error_code_ptr)
 end subroutine sirius_generate_d_operator_matrix
 
 !
@@ -6251,33 +6263,33 @@ end subroutine sirius_save_state
 
 !
 !> @brief Save DFT ground state (density and potential)
-!> @param [in] handler Ground-state handler.
+!> @param [in] gs_handler Ground-state handler.
 !> @param [in] file_name Name of the file that stores the saved data.
 !> @param [out] error_code Error code
-subroutine sirius_load_state(handler,file_name,error_code)
+subroutine sirius_load_state(gs_handler,file_name,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 character(*), target, intent(in) :: file_name
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: file_name_ptr
 character(C_CHAR), target, allocatable :: file_name_c_type(:)
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_load_state_aux(handler,file_name,error_code)&
+subroutine sirius_load_state_aux(gs_handler,file_name,error_code)&
 &bind(C, name="sirius_load_state")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: file_name
 type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 file_name_ptr = C_NULL_PTR
 allocate(file_name_c_type(len(file_name)+1))
 file_name_c_type = string_f2c(file_name)
@@ -6286,37 +6298,37 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_load_state_aux(handler_ptr,file_name_ptr,error_code_ptr)
+call sirius_load_state_aux(gs_handler_ptr,file_name_ptr,error_code_ptr)
 deallocate(file_name_c_type)
 end subroutine sirius_load_state
 
 !
 !> @brief Set density matrix.
-!> @param [in] handler Ground-state handler.
+!> @param [in] gs_handler Ground-state handler.
 !> @param [in] ia Index of atom.
 !> @param [in] dm Input density matrix.
 !> @param [in] ld Leading dimension of the density matrix.
 !> @param [out] error_code Error code.
-subroutine sirius_set_density_matrix(handler,ia,dm,ld,error_code)
+subroutine sirius_set_density_matrix(gs_handler,ia,dm,ld,error_code)
 implicit none
 !
-type(sirius_ground_state_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
 integer, target, intent(in) :: ia
 complex(8), target, intent(in) :: dm(ld, ld, 3)
 integer, target, intent(in) :: ld
 integer, optional, target, intent(out) :: error_code
 !
-type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
 type(C_PTR) :: ia_ptr
 type(C_PTR) :: dm_ptr
 type(C_PTR) :: ld_ptr
 type(C_PTR) :: error_code_ptr
 !
 interface
-subroutine sirius_set_density_matrix_aux(handler,ia,dm,ld,error_code)&
+subroutine sirius_set_density_matrix_aux(gs_handler,ia,dm,ld,error_code)&
 &bind(C, name="sirius_set_density_matrix")
 use, intrinsic :: ISO_C_BINDING
-type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
 type(C_PTR), value :: ia
 type(C_PTR), value :: dm
 type(C_PTR), value :: ld
@@ -6324,8 +6336,8 @@ type(C_PTR), value :: error_code
 end subroutine
 end interface
 !
-handler_ptr = C_NULL_PTR
-handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
 ia_ptr = C_NULL_PTR
 ia_ptr = C_LOC(ia)
 dm_ptr = C_NULL_PTR
@@ -6336,7 +6348,7 @@ error_code_ptr = C_NULL_PTR
 if (present(error_code)) then
 error_code_ptr = C_LOC(error_code)
 endif
-call sirius_set_density_matrix_aux(handler_ptr,ia_ptr,dm_ptr,ld_ptr,error_code_ptr)
+call sirius_set_density_matrix_aux(gs_handler_ptr,ia_ptr,dm_ptr,ld_ptr,error_code_ptr)
 end subroutine sirius_set_density_matrix
 
 !
@@ -6559,6 +6571,648 @@ version_ptr = C_LOC(version)
 call sirius_get_revision_aux(version_ptr)
 end subroutine sirius_get_revision
 
+!
+!> @brief Checks if the library is initialized.
+!> @param [out] status Status of the library (true if initialized).
+!> @param [out] error_code Error code.
+subroutine sirius_is_initialized(status,error_code)
+implicit none
+!
+logical, target, intent(out) :: status
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: status_ptr
+logical(C_BOOL), target :: status_c_type
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_is_initialized_aux(status,error_code)&
+&bind(C, name="sirius_is_initialized")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: status
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+status_ptr = C_NULL_PTR
+status_ptr = C_LOC(status_c_type)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_is_initialized_aux(status_ptr,error_code_ptr)
+status = status_c_type
+end subroutine sirius_is_initialized
+
+!
+!> @brief Create context of the simulation, from a JSON file or string.
+!> @param [in] fcomm Entire communicator of the simulation.
+!> @param [out] handler New empty simulation context.
+!> @param [in] fname file name or JSON string.
+!> @param [out] error_code Error code.
+subroutine sirius_create_context_from_json(fcomm,handler,fname,error_code)
+implicit none
+!
+integer, value, intent(in) :: fcomm
+type(sirius_context_handler), target, intent(out) :: handler
+character(*), target, intent(in) :: fname
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: handler_ptr
+type(C_PTR) :: fname_ptr
+character(C_CHAR), target, allocatable :: fname_c_type(:)
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_create_context_from_json_aux(fcomm,handler,fname,error_code)&
+&bind(C, name="sirius_create_context_from_json")
+use, intrinsic :: ISO_C_BINDING
+integer(C_INT), value :: fcomm
+type(C_PTR), value :: handler
+type(C_PTR), value :: fname
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+handler_ptr = C_NULL_PTR
+handler_ptr = C_LOC(handler%handler_ptr_)
+fname_ptr = C_NULL_PTR
+allocate(fname_c_type(len(fname)+1))
+fname_c_type = string_f2c(fname)
+fname_ptr = C_LOC(fname_c_type)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_create_context_from_json_aux(fcomm,handler_ptr,fname_ptr,error_code_ptr)
+deallocate(fname_c_type)
+end subroutine sirius_create_context_from_json
+
+!
+!> @brief Get the number of atoms in the simulation
+!> @param [in] gs_handler Ground-state handler.
+!> @param [out] num_atoms Number of atoms.
+!> @param [out] error_code Error code.
+subroutine sirius_get_num_atoms(gs_handler,num_atoms,error_code)
+implicit none
+!
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
+integer, target, intent(out) :: num_atoms
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: gs_handler_ptr
+type(C_PTR) :: num_atoms_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_get_num_atoms_aux(gs_handler,num_atoms,error_code)&
+&bind(C, name="sirius_get_num_atoms")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: gs_handler
+type(C_PTR), value :: num_atoms
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
+num_atoms_ptr = C_NULL_PTR
+num_atoms_ptr = C_LOC(num_atoms)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_get_num_atoms_aux(gs_handler_ptr,num_atoms_ptr,error_code_ptr)
+end subroutine sirius_get_num_atoms
+
+!
+!> @brief Get the k-point parameters from the simulation context.
+!> @param [in] handler Simulation context handler.
+!> @param [out] k_grid dimensions of the k points grid.
+!> @param [out] k_shift k point shifts.
+!> @param [out] use_symmetry If .true. k-set will be generated using symmetries.
+!> @param [out] error_code Error code.
+subroutine sirius_get_kp_params_from_ctx(handler,k_grid,k_shift,use_symmetry,error_code)
+implicit none
+!
+type(sirius_context_handler), target, intent(in) :: handler
+integer, target, intent(out) :: k_grid(3)
+integer, target, intent(out) :: k_shift(3)
+logical, target, intent(out) :: use_symmetry
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: handler_ptr
+type(C_PTR) :: k_grid_ptr
+type(C_PTR) :: k_shift_ptr
+type(C_PTR) :: use_symmetry_ptr
+logical(C_BOOL), target :: use_symmetry_c_type
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_get_kp_params_from_ctx_aux(handler,k_grid,k_shift,use_symmetry,&
+&error_code)&
+&bind(C, name="sirius_get_kp_params_from_ctx")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: handler
+type(C_PTR), value :: k_grid
+type(C_PTR), value :: k_shift
+type(C_PTR), value :: use_symmetry
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+handler_ptr = C_NULL_PTR
+handler_ptr = C_LOC(handler%handler_ptr_)
+k_grid_ptr = C_NULL_PTR
+k_grid_ptr = C_LOC(k_grid)
+k_shift_ptr = C_NULL_PTR
+k_shift_ptr = C_LOC(k_shift)
+use_symmetry_ptr = C_NULL_PTR
+use_symmetry_ptr = C_LOC(use_symmetry_c_type)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_get_kp_params_from_ctx_aux(handler_ptr,k_grid_ptr,k_shift_ptr,use_symmetry_ptr,&
+&error_code_ptr)
+use_symmetry = use_symmetry_c_type
+end subroutine sirius_get_kp_params_from_ctx
+
+!
+!> @brief Get the SCF parameters from the simulation context.
+!> @param [in] handler Simulation context handler.
+!> @param [out] density_tol__ Tolerance on RMS in density.
+!> @param [out] energy_tol__ Tolerance in total energy difference.
+!> @param [out] iter_solver_tol Initial tolerance of the iterative solver.
+!> @param [out] max_niter Maximum number of SCF iterations.
+!> @param [out] error_code Error code.
+subroutine sirius_get_scf_params_from_ctx(handler,density_tol__,energy_tol__,iter_solver_tol,&
+&max_niter,error_code)
+implicit none
+!
+type(sirius_context_handler), target, intent(in) :: handler
+real(8), target, intent(out) :: density_tol__
+real(8), target, intent(out) :: energy_tol__
+real(8), target, intent(out) :: iter_solver_tol
+integer, target, intent(out) :: max_niter
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: handler_ptr
+type(C_PTR) :: density_tol___ptr
+type(C_PTR) :: energy_tol___ptr
+type(C_PTR) :: iter_solver_tol_ptr
+type(C_PTR) :: max_niter_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_get_scf_params_from_ctx_aux(handler,density_tol__,energy_tol__,&
+&iter_solver_tol,max_niter,error_code)&
+&bind(C, name="sirius_get_scf_params_from_ctx")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: handler
+type(C_PTR), value :: density_tol__
+type(C_PTR), value :: energy_tol__
+type(C_PTR), value :: iter_solver_tol
+type(C_PTR), value :: max_niter
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+handler_ptr = C_NULL_PTR
+handler_ptr = C_LOC(handler%handler_ptr_)
+density_tol___ptr = C_NULL_PTR
+density_tol___ptr = C_LOC(density_tol__)
+energy_tol___ptr = C_NULL_PTR
+energy_tol___ptr = C_LOC(energy_tol__)
+iter_solver_tol_ptr = C_NULL_PTR
+iter_solver_tol_ptr = C_LOC(iter_solver_tol)
+max_niter_ptr = C_NULL_PTR
+max_niter_ptr = C_LOC(max_niter)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_get_scf_params_from_ctx_aux(handler_ptr,density_tol___ptr,energy_tol___ptr,&
+&iter_solver_tol_ptr,max_niter_ptr,error_code_ptr)
+end subroutine sirius_get_scf_params_from_ctx
+
+!
+!> @brief Create an Hamiltonian based on the density stored in the gs_handler.
+!> @param [in] gs_handler Ground-state context handler.
+!> @param [out] H0_handler The new handler for the Hamiltonian
+!> @param [out] error_code Error code.
+subroutine sirius_create_hamiltonian(gs_handler,H0_handler,error_code)
+implicit none
+!
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
+type(H0_handler), target, intent(out) :: H0_handler
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: gs_handler_ptr
+type(C_PTR) :: H0_handler_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_create_hamiltonian_aux(gs_handler,H0_handler,error_code)&
+&bind(C, name="sirius_create_hamiltonian")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: gs_handler
+type(C_PTR), value :: H0_handler
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
+H0_handler_ptr = C_NULL_PTR
+H0_handler_ptr = C_LOC(H0_handler)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_create_hamiltonian_aux(gs_handler_ptr,H0_handler_ptr,error_code_ptr)
+end subroutine sirius_create_hamiltonian
+
+!
+!> @brief Diagonalizes the Hamiltonian.
+!> @param [in] handler Simulation context handler.
+!> @param [in] gs_handler Ground-state context handler.
+!> @param [in] H0_handler Hamiltonian contexct handler.
+!> @param [in] iter_solver_tol Tolerance for the iterative solver.
+!> @param [in] max_steps Maximum number of steps for the iterative solver.
+!> @param [in] converge_by_energy Whether the solver should determine convergence by checking the energy different (1), or the L2 norm of the residual (0). Default is value is 1.
+!> @param [in] exact_diagonalization Whether an exact diagonalization should take place (rather than iterative Davidson)
+!> @param [out] converged Whether the iterative solver converged
+!> @param [out] niter Number of steps for the solver to converge
+!> @param [out] error_code Error code.
+subroutine sirius_diagonalize_hamiltonian(handler,gs_handler,H0_handler,iter_solver_tol,&
+&max_steps,converge_by_energy,exact_diagonalization,converged,niter,error_code)
+implicit none
+!
+type(sirius_context_handler), target, intent(in) :: handler
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
+type(H0_handler), target, intent(in) :: H0_handler
+real(8), target, intent(in) :: iter_solver_tol
+integer, target, intent(in) :: max_steps
+integer, optional, target, intent(in) :: converge_by_energy
+logical, optional, target, intent(in) :: exact_diagonalization
+logical, target, intent(out) :: converged
+integer, target, intent(out) :: niter
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: handler_ptr
+type(C_PTR) :: gs_handler_ptr
+type(C_PTR) :: H0_handler_ptr
+type(C_PTR) :: iter_solver_tol_ptr
+type(C_PTR) :: max_steps_ptr
+type(C_PTR) :: converge_by_energy_ptr
+type(C_PTR) :: exact_diagonalization_ptr
+logical(C_BOOL), target :: exact_diagonalization_c_type
+type(C_PTR) :: converged_ptr
+logical(C_BOOL), target :: converged_c_type
+type(C_PTR) :: niter_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_diagonalize_hamiltonian_aux(handler,gs_handler,H0_handler,iter_solver_tol,&
+&max_steps,converge_by_energy,exact_diagonalization,converged,niter,error_code)&
+&bind(C, name="sirius_diagonalize_hamiltonian")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: handler
+type(C_PTR), value :: gs_handler
+type(C_PTR), value :: H0_handler
+type(C_PTR), value :: iter_solver_tol
+type(C_PTR), value :: max_steps
+type(C_PTR), value :: converge_by_energy
+type(C_PTR), value :: exact_diagonalization
+type(C_PTR), value :: converged
+type(C_PTR), value :: niter
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+handler_ptr = C_NULL_PTR
+handler_ptr = C_LOC(handler%handler_ptr_)
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
+H0_handler_ptr = C_NULL_PTR
+H0_handler_ptr = C_LOC(H0_handler)
+iter_solver_tol_ptr = C_NULL_PTR
+iter_solver_tol_ptr = C_LOC(iter_solver_tol)
+max_steps_ptr = C_NULL_PTR
+max_steps_ptr = C_LOC(max_steps)
+converge_by_energy_ptr = C_NULL_PTR
+if (present(converge_by_energy)) then
+converge_by_energy_ptr = C_LOC(converge_by_energy)
+endif
+exact_diagonalization_ptr = C_NULL_PTR
+if (present(exact_diagonalization)) then
+exact_diagonalization_c_type = exact_diagonalization
+exact_diagonalization_ptr = C_LOC(exact_diagonalization_c_type)
+endif
+converged_ptr = C_NULL_PTR
+converged_ptr = C_LOC(converged_c_type)
+niter_ptr = C_NULL_PTR
+niter_ptr = C_LOC(niter)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_diagonalize_hamiltonian_aux(handler_ptr,gs_handler_ptr,H0_handler_ptr,&
+&iter_solver_tol_ptr,max_steps_ptr,converge_by_energy_ptr,exact_diagonalization_ptr,&
+&converged_ptr,niter_ptr,error_code_ptr)
+if (present(exact_diagonalization)) then
+endif
+converged = converged_c_type
+end subroutine sirius_diagonalize_hamiltonian
+
+!
+!> @brief Internally calculate the band occupancies.
+!> @param [in] ks_handler Handler for the k-point set.
+!> @param [out] error_code Error code.
+subroutine sirius_find_band_occupancies(ks_handler,error_code)
+implicit none
+!
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: ks_handler_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_find_band_occupancies_aux(ks_handler,error_code)&
+&bind(C, name="sirius_find_band_occupancies")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: ks_handler
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_find_band_occupancies_aux(ks_handler_ptr,error_code_ptr)
+end subroutine sirius_find_band_occupancies
+
+!
+!> @brief Sets the number of bands in the simulation context.
+!> @param [in] handler Simulation context handler.
+!> @param [in] num_bands Number of bands to set.
+!> @param [out] error_code Error code.
+subroutine sirius_set_num_bands(handler,num_bands,error_code)
+implicit none
+!
+type(sirius_context_handler), target, intent(in) :: handler
+integer, target, intent(in) :: num_bands
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: handler_ptr
+type(C_PTR) :: num_bands_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_set_num_bands_aux(handler,num_bands,error_code)&
+&bind(C, name="sirius_set_num_bands")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: handler
+type(C_PTR), value :: num_bands
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+handler_ptr = C_NULL_PTR
+handler_ptr = C_LOC(handler%handler_ptr_)
+num_bands_ptr = C_NULL_PTR
+num_bands_ptr = C_LOC(num_bands)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_set_num_bands_aux(handler_ptr,num_bands_ptr,error_code_ptr)
+end subroutine sirius_set_num_bands
+
+!
+!> @brief Triggers an internal FFT transform of the given field, in the given direction
+!> @param [in] gs_handler Ground-state handler.
+!> @param [in] label Which field to FFT transform.
+!> @param [in] direction FFT transform direction (1 forward, -1, backward)
+!> @param [out] error_code Error code.
+subroutine sirius_fft_transform(gs_handler,label,direction,error_code)
+implicit none
+!
+type(sirius_ground_state_handler), target, intent(in) :: gs_handler
+character(*), target, intent(in) :: label
+integer, target, intent(in) :: direction
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: gs_handler_ptr
+type(C_PTR) :: label_ptr
+character(C_CHAR), target, allocatable :: label_c_type(:)
+type(C_PTR) :: direction_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_fft_transform_aux(gs_handler,label,direction,error_code)&
+&bind(C, name="sirius_fft_transform")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: gs_handler
+type(C_PTR), value :: label
+type(C_PTR), value :: direction
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+gs_handler_ptr = C_NULL_PTR
+gs_handler_ptr = C_LOC(gs_handler%handler_ptr_)
+label_ptr = C_NULL_PTR
+allocate(label_c_type(len(label)+1))
+label_c_type = string_f2c(label)
+label_ptr = C_LOC(label_c_type)
+direction_ptr = C_NULL_PTR
+direction_ptr = C_LOC(direction)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_fft_transform_aux(gs_handler_ptr,label_ptr,direction_ptr,error_code_ptr)
+deallocate(label_c_type)
+end subroutine sirius_fft_transform
+
+!
+!> @brief Gets the wave function for a given k-point and spin (all local, no MPI communication).
+!> @param [in] ks_handler Handler for the k-point set.
+!> @param [in] ik Index of the k-point.
+!> @param [in] ispin Index of the spin.
+!> @param [in] psi Pointer to the wave function coefficients.
+!> @param [out] error_code Error code.
+subroutine sirius_get_psi(ks_handler,ik,ispin,psi,error_code)
+implicit none
+!
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
+integer, target, intent(in) :: ik
+integer, target, intent(in) :: ispin
+complex(8), target, intent(in) :: psi(:)
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: ks_handler_ptr
+type(C_PTR) :: ik_ptr
+type(C_PTR) :: ispin_ptr
+type(C_PTR) :: psi_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_get_psi_aux(ks_handler,ik,ispin,psi,error_code)&
+&bind(C, name="sirius_get_psi")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: ks_handler
+type(C_PTR), value :: ik
+type(C_PTR), value :: ispin
+type(C_PTR), value :: psi
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
+ik_ptr = C_NULL_PTR
+ik_ptr = C_LOC(ik)
+ispin_ptr = C_NULL_PTR
+ispin_ptr = C_LOC(ispin)
+psi_ptr = C_NULL_PTR
+psi_ptr = C_LOC(psi)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_get_psi_aux(ks_handler_ptr,ik_ptr,ispin_ptr,psi_ptr,error_code_ptr)
+end subroutine sirius_get_psi
+
+!
+!> @brief Gets the G+k integer coordinates for a given k-point.
+!> @param [in] ks_handler Handler for the k-point set.
+!> @param [in] ik Index of the k-point.
+!> @param [in] gvec Pointer to the G+k vector coordinates.
+!> @param [out] error_code Error code.
+subroutine sirius_get_gkvec(ks_handler,ik,gvec,error_code)
+implicit none
+!
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
+integer, target, intent(in) :: ik
+real(8), target, intent(in) :: gvec(:)
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: ks_handler_ptr
+type(C_PTR) :: ik_ptr
+type(C_PTR) :: gvec_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_get_gkvec_aux(ks_handler,ik,gvec,error_code)&
+&bind(C, name="sirius_get_gkvec")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: ks_handler
+type(C_PTR), value :: ik
+type(C_PTR), value :: gvec
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
+ik_ptr = C_NULL_PTR
+ik_ptr = C_LOC(ik)
+gvec_ptr = C_NULL_PTR
+gvec_ptr = C_LOC(gvec)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_get_gkvec_aux(ks_handler_ptr,ik_ptr,gvec_ptr,error_code_ptr)
+end subroutine sirius_get_gkvec
+
+!
+!> @brief Sets the SIRIUS Fermi energy.
+!> @param [in] ks_handler Handler for the k-point set.
+!> @param [in] energy_fermi Fermi energy to be set.
+!> @param [out] error_code Error code.
+subroutine sirius_set_energy_fermi(ks_handler,energy_fermi,error_code)
+implicit none
+!
+type(sirius_kpoint_set_handler), target, intent(in) :: ks_handler
+real(8), target, intent(in) :: energy_fermi
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: ks_handler_ptr
+type(C_PTR) :: energy_fermi_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_set_energy_fermi_aux(ks_handler,energy_fermi,error_code)&
+&bind(C, name="sirius_set_energy_fermi")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: ks_handler
+type(C_PTR), value :: energy_fermi
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+ks_handler_ptr = C_NULL_PTR
+ks_handler_ptr = C_LOC(ks_handler%handler_ptr_)
+energy_fermi_ptr = C_NULL_PTR
+energy_fermi_ptr = C_LOC(energy_fermi)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_set_energy_fermi_aux(ks_handler_ptr,energy_fermi_ptr,error_code_ptr)
+end subroutine sirius_set_energy_fermi
+
+!
+!> @brief Set new atomic vector field (aka initial magnetization).
+!> @param [in] handler Simulation context handler.
+!> @param [in] ia Index of atom; index starts form 1
+!> @param [in] vector_field Atom vector field.
+!> @param [out] error_code Error code.
+subroutine sirius_set_atom_vector_field(handler,ia,vector_field,error_code)
+implicit none
+!
+type(sirius_context_handler), target, intent(in) :: handler
+integer, target, intent(in) :: ia
+real(8), target, intent(in) :: vector_field(3)
+integer, optional, target, intent(out) :: error_code
+!
+type(C_PTR) :: handler_ptr
+type(C_PTR) :: ia_ptr
+type(C_PTR) :: vector_field_ptr
+type(C_PTR) :: error_code_ptr
+!
+interface
+subroutine sirius_set_atom_vector_field_aux(handler,ia,vector_field,error_code)&
+&bind(C, name="sirius_set_atom_vector_field")
+use, intrinsic :: ISO_C_BINDING
+type(C_PTR), value :: handler
+type(C_PTR), value :: ia
+type(C_PTR), value :: vector_field
+type(C_PTR), value :: error_code
+end subroutine
+end interface
+!
+handler_ptr = C_NULL_PTR
+handler_ptr = C_LOC(handler%handler_ptr_)
+ia_ptr = C_NULL_PTR
+ia_ptr = C_LOC(ia)
+vector_field_ptr = C_NULL_PTR
+vector_field_ptr = C_LOC(vector_field)
+error_code_ptr = C_NULL_PTR
+if (present(error_code)) then
+error_code_ptr = C_LOC(error_code)
+endif
+call sirius_set_atom_vector_field_aux(handler_ptr,ia_ptr,vector_field_ptr,error_code_ptr)
+end subroutine sirius_set_atom_vector_field
+
 
 subroutine sirius_free_handler_ctx(handler, error_code)
     implicit none
@@ -6580,5 +7234,12 @@ subroutine sirius_free_handler_dft(handler, error_code)
     integer, optional, target, intent(out) :: error_code
     call sirius_free_object_handler(handler%handler_ptr_, error_code)
 end subroutine sirius_free_handler_dft
+
+subroutine sirius_free_handler_H0(handler, error_code)
+    implicit none
+    type(sirius_H0_handler), intent(inout) :: handler
+    integer, optional, target, intent(out) :: error_code
+    call sirius_free_object_handler(handler%handler_ptr_, error_code)
+end subroutine sirius_free_handler_ctx
 
 end module

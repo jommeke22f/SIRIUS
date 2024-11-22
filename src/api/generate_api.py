@@ -45,6 +45,10 @@ type_info = {
     'ctx_handler' : {
         'f_type' : 'type(sirius_context_handler)',
         'c_type' : 'type(C_PTR)'
+    },
+    'H0_handler' : {
+        'f_type' : 'type(H0_handler)',
+        'c_type' : 'type(C_PTR)'
     }
 }
 
@@ -388,22 +392,31 @@ INTEGER, PARAMETER, PUBLIC :: SIRIUS_ARRAY_ARRAY_TYPE = 12
 
 !> @brief Opaque wrapper for simulation context handler.
 type sirius_context_handler
-    type(C_PTR) :: handler_ptr_
+    private
+    type(C_PTR) :: handler_ptr_ = C_NULL_PTR
 end type
 
 !> @brief Opaque wrapper for DFT ground statee handler.
 type sirius_ground_state_handler
-    type(C_PTR) :: handler_ptr_
+    private
+    type(C_PTR) :: handler_ptr_ = C_NULL_PTR
 end type
 
 !> @brief Opaque wrapper for K-point set handler.
 type sirius_kpoint_set_handler
-    type(C_PTR) :: handler_ptr_
+    private
+    type(C_PTR) :: handler_ptr_ = C_NULL_PTR
+end type
+
+!> @brief Opaque wrapper for K-point independent Hamiltonian object.
+type sirius_H0_handler
+    private
+    type(C_PTR) :: handler_ptr_ = C_NULL_PTR
 end type
 
 !> @brief Free any of the SIRIUS handlers (context, ground state or k-points).
 interface sirius_free_handler
-    module procedure sirius_free_handler_ctx, sirius_free_handler_ks, sirius_free_handler_dft
+    module procedure sirius_free_handler_ctx, sirius_free_handler_ks, sirius_free_handler_dft, sirius_free_handler_H0
 end interface
 
 contains
@@ -459,6 +472,13 @@ subroutine sirius_free_handler_dft(handler, error_code)
     integer, optional, target, intent(out) :: error_code
     call sirius_free_object_handler(handler%handler_ptr_, error_code)
 end subroutine sirius_free_handler_dft
+
+subroutine sirius_free_handler_H0(handler, error_code)
+    implicit none
+    type(sirius_H0_handler), intent(inout) :: handler
+    integer, optional, target, intent(out) :: error_code
+    call sirius_free_object_handler(handler%handler_ptr_, error_code)
+end subroutine sirius_free_handler_ctx
 
 end module
 '''

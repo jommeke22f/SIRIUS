@@ -6752,11 +6752,11 @@ sirius_get_revision(int* version)
 }
 
 /*
- @api begin
- sirius_is_initialized:
-   doc: Checks if the library is initialized.
-   arguments:
-     status:
+@api begin
+sirius_is_initialized:
+  doc: Checks if the library is initialized.
+  arguments:
+    status:
       type: bool
       attr: out, required
       doc: Status of the library (true if initialized).
@@ -6764,8 +6764,8 @@ sirius_get_revision(int* version)
       type: int
       attr: out, optional
       doc: Error code.
- @api end
- */
+@api end
+*/
 void
 sirius_is_initialized(bool* status__, int* error_code__)
 {
@@ -6905,7 +6905,7 @@ sirius_get_scf_params_from_ctx:
       doc: Tolerance on RMS in density.
     energy_tol__:
       type: double
-      attr: out, require
+      attr: out, required
       doc: Tolerance in total energy difference.
     iter_solver_tol:
       type: double
@@ -7000,11 +7000,23 @@ sirius_diagonalize_hamiltonian:
     converge_by_energy:
       type: int
       attr: in, optional
-      doc: Whether the solver should determine convergence by checking the energy different (1), or the L2 norm of the
-residual (0). Default is value is 1. exact_diagonalization: type: bool attr: in, optional doc: Whether an exact
-diagonalization should take place (rather than iterative Davidson) converged: type: bool attr: out, required doc:
-Whether the iterative solver converged niter: type: int attr: out, required doc: Number of steps for the solver to
-converge error_code: type: int attr: out, optional doc: Error code.
+      doc: Whether the solver should determine convergence by checking the energy different (1), or the L2 norm of the residual (0). Default is value is 1.
+    exact_diagonalization:
+      type: bool
+      attr: in, optional
+      doc: Whether an exact diagonalization should take place (rather than iterative Davidson)
+    converged:
+      type: bool
+      attr: out, required
+      doc: Whether the iterative solver converged
+    niter:
+      type: int
+      attr: out, required
+      doc: Number of steps for the solver to converge
+    error_code:
+      type: int
+      attr: out, optional
+      doc: Error code.
 @api end
 */
 void
