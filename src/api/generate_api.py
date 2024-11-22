@@ -478,7 +478,7 @@ subroutine sirius_free_handler_H0(handler, error_code)
     type(sirius_H0_handler), intent(inout) :: handler
     integer, optional, target, intent(out) :: error_code
     call sirius_free_object_handler(handler%handler_ptr_, error_code)
-end subroutine sirius_free_handler_ctx
+end subroutine sirius_free_handler_H0
 
 end module
 '''
