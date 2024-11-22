@@ -1186,7 +1186,7 @@ class Enu_finder : public Radial_solver
          * of the band. */
         int s{1};
         int sp;
-        double denu{1e-8};
+        double denu{1e-6};
         double e0;
         /* 1st pass: estimate upper and lower boundaries of the etop*/
         e0 = integrate_forward_until(rel__, enu_start__, l_, 0, chi_p, chi_q, p, dpdr, q, dqdr, false,
@@ -1196,7 +1196,9 @@ class Enu_finder : public Radial_solver
                                          if (s != sp && iter > 0) {
                                              return true;
                                          }
-                                         denu *= 10;
+                                         if (denu <= 1.0) {
+                                             denu *= 4;
+                                         }
                                          enu += s * denu;
                                          return false;
                                      });
@@ -1236,13 +1238,16 @@ class Enu_finder : public Radial_solver
         /* Now we go down in energy and search for enu such that the wave-function derivative is zero
          * at the muffin-tin boundary. This will be the bottom of the band. Here we look at a sign change
          * of the derivative. */
-        denu = 1e-8;
+        denu = 1e-4;
         e0   = integrate_forward_until(rel__, etop_, l_, 0, chi_p, chi_q, p, dpdr, q, dqdr, false,
                                        [&denu, sd, &surface_deriv, this](int iter, int nn, double& enu) {
-                                         if (surface_deriv() * sd <= 0 || denu > 20) {
+                                         if (surface_deriv() * sd < 0) {
                                              return true;
                                          }
-                                         denu *= 2;
+                                         /* do not allow step in energy to grow too much */
+                                         if (denu <= 1.0) {
+                                             denu *= 1.5;
+                                         }
                                          enu -= denu;
                                          return false;
                                      });
