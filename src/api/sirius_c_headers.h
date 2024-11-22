@@ -1337,8 +1337,8 @@ sirius_get_pw_coeffs:
       doc: Error code.
 */
 void
-sirius_get_pw_coeffs(void* const* gs_handler__, char const* label__, double complex* pw_coeffs__, int const* ngv__,
-                     int* gvl__, int const* comm__, int* error_code__);
+sirius_get_pw_coeffs(void* const* gs_handler__, char const* label__, double complex* pw_coeffs__,
+                     int const* ngv__, int* gvl__, int const* comm__, int* error_code__);
 
 /*
 sirius_initialize_subspace:
@@ -2573,8 +2573,8 @@ sirius_get_fv_eigen_vectors:
       doc: Error code
 */
 void
-sirius_get_fv_eigen_vectors(void* const* ks_handler__, int const* ik__, double complex* fv_evec__, int const* ld__,
-                            int const* num_fv_states__, int* error_code__);
+sirius_get_fv_eigen_vectors(void* const* ks_handler__, int const* ik__, double complex* fv_evec__,
+                            int const* ld__, int const* num_fv_states__, int* error_code__);
 
 /*
 sirius_get_fv_eigen_values:
@@ -2676,9 +2676,9 @@ sirius_set_rg_values:
       doc: Error code
 */
 void
-sirius_set_rg_values(void* const* gs_handler__, char const* label__, int const* grid_dims__, int const* local_box_origin__,
-                     int const* local_box_size__, int const* fcomm__, double const* values__,
-                     bool const* transform_to_pw__, int* error_code__);
+sirius_set_rg_values(void* const* gs_handler__, char const* label__, int const* grid_dims__,
+                     int const* local_box_origin__, int const* local_box_size__, int const* fcomm__,
+                     double const* values__, bool const* transform_to_pw__, int* error_code__);
 
 /*
 sirius_get_rg_values:
@@ -2722,9 +2722,9 @@ sirius_get_rg_values:
       doc: Error code
 */
 void
-sirius_get_rg_values(void* const* gs_handler__, char const* label__, int const* grid_dims__, int const* local_box_origin__,
-                     int const* local_box_size__, int const* fcomm__, double* values__, bool const* transform_to_rg__,
-                     int* error_code__);
+sirius_get_rg_values(void* const* gs_handler__, char const* label__, int const* grid_dims__,
+                     int const* local_box_origin__, int const* local_box_size__, int const* fcomm__, double* values__,
+                     bool const* transform_to_rg__, int* error_code__);
 
 /*
 sirius_get_total_magnetization:
@@ -3390,9 +3390,9 @@ sirius_get_revision(int* version);
 
 /*
 sirius_is_initialized:
-   doc: Checks if the library is initialized.
-   arguments:
-     status:
+  doc: Checks if the library is initialized.
+  arguments:
+    status:
       type: bool
       attr: out, required
       doc: Status of the library (true if initialized).
@@ -3491,7 +3491,7 @@ sirius_get_scf_params_from_ctx:
       doc: Tolerance on RMS in density.
     energy_tol__:
       type: double
-      attr: out, require
+      attr: out, required
       doc: Tolerance in total energy difference.
     iter_solver_tol:
       type: double
@@ -3575,12 +3575,10 @@ sirius_diagonalize_hamiltonian:
       attr: out, optional
       doc: Error code.
 */
-void 
-sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__,
-                               void* const* H0_handler__, double* const iter_solver_tol__,
-                               int* const max_steps__, int* converge_by_energy__,
-                               bool* const exact_diagonalization__,
-                               bool* converged__, int* niter__, int* error_code__);
+void
+sirius_diagonalize_hamiltonian(void* const* handler__, void* const* gs_handler__, void* const* H0_handler__,
+                               double* const iter_solver_tol__, int* const max_steps__, int* converge_by_energy__,
+                               bool* const exact_diagonalization__, bool* converged__, int* niter__, int* error_code__);
 
 /*
 sirius_find_band_occupancies:
@@ -3668,8 +3666,7 @@ sirius_get_psi:
       doc: Error code.
 */
 void
-sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, double complex* psi__, 
-               int* error_code__);
+sirius_get_psi(void* const* ks_handler__, int* ik__, int* ispin__, double complex* psi__, int* error_code__);
 
 /*
 sirius_get_gkvec:
