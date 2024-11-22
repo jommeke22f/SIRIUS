@@ -15,6 +15,7 @@ jobs:
       - name: Check API generation
         run: |
           cd ./src/api
+          python3 -m pip install PyYAML
           python3 generate_api.py sirius_api.cpp
 
 
